@@ -47,72 +47,72 @@ The instructor outlines a logical flow for how the AI agent should operate:
 
 
 
------------------------------------------------------------------------------------------------------------------------------------------------------
+---
+
 
 🚀 Recommended Next Steps (Priority Order)
 Phase 1: Core Missing Features (Must Have)
 1. Add Multiple Platforms 🔥 CRITICAL
 
-Build Flipkart scraper
-Build Meesho scraper (if possible)
-Enable platform comparison
+*Build Flipkart scraper
+*Build Meesho scraper (if possible)
+*Enable platform comparison
 
 2. Price Tracking Over Time 🔥 CRITICAL
 
-Store price history in price_history collection
-Track changes over 2 months
-Detect price drops
-Show trend charts
+*Store price history in price_history collection
+*Track changes over 2 months
+*Detect price drops
+*Show trend charts
 
 3. Multiple Categories 🔥 CRITICAL
 
-Add: Clothing, Cosmetics, Groceries, Automobiles
-Category-specific scraping logic
-Category filtering in dashboard
+*Add: Clothing, Cosmetics, Groceries, Automobiles
+*Category-specific scraping logic
+*Category filtering in dashboard
 
 4. Competitive Analysis 🔥 CRITICAL
 
-Side-by-side platform comparison
-"Cheapest price" finder
-Platform pricing strategies
+*Side-by-side platform comparison
+*"Cheapest price" finder
+*Platform pricing strategies
 
 
 Phase 2: Advanced Features (Should Have)
 5. Trending Products Detection
 
-Use SerpAPI to find trending searches
-Track product popularity
-Consumer demand signals
+*Use SerpAPI to find trending searches
+*Track product popularity
+*Consumer demand signals
 
 6. Festive Discount Tracking
 
-Detect discount patterns
-Compare festive vs regular prices
-Alert on special offers
+*Detect discount patterns
+*Compare festive vs regular prices
+*Alert on special offers
 
 7. AI Risk Assessment
 
-Analyze pricing risks
-Stock availability risks
-Market saturation analysis
+*Analyze pricing risks
+*Stock availability risks
+*Market saturation analysis
 
 8. Demand Forecasting
 
-Predict future demand
-Seasonal trends
-Purchase recommendations
+*Predict future demand
+*Seasonal trends
+*Purchase recommendations
 
 
 Phase 3: Nice to Have
 9. ChromaDB for Vector Storage
 
-Store reports as embeddings
-Semantic search through reports
-Better report retrieval
+*Store reports as embeddings
+*Semantic search through reports
+*Better report retrieval
 
 10. Location-based Analysis
 
-Track regional availability
-Logistics insights
-Delivery time analysis
-
+*Track regional availability
+*Logistics insights
+*Delivery time analysis
