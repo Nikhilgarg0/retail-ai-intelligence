@@ -1,7 +1,12 @@
 # test_crew_ai.py
+import os
+from config.settings import settings  # Correct path: config/settings.py
 from src.database.mongo_manager import db_manager
 from src.agents.crew_manager import crew_manager
 import json
+
+# Set Groq API key as environment variable for CrewAI
+os.environ['GROQ_API_KEY'] = settings.groq_api_key
 
 print("Testing CrewAI Multi-Agent System...\n")
 print("=" * 60)

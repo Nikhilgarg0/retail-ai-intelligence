@@ -2,6 +2,7 @@ from crewai import Agent, Task, Crew, Process
 from typing import List, Dict
 import json
 import logging
+import time
 
 
 logging.basicConfig(level=logging.INFO)
@@ -11,10 +12,20 @@ logger = logging.getLogger(__name__)
 class RetailIntelligenceCrew:
     """Multi-agent system for comprehensive retail analysis"""
 
+    def __init__(self, task_delay_seconds: int = 15):
+        """
+        Initialize the crew manager.
+        
+        Args:
+            task_delay_seconds: Delay in seconds between task executions to avoid rate limits (default: 15)
+        """
+        self.task_delay_seconds = task_delay_seconds
+        logger.info(f"⏱️ Task delay set to {task_delay_seconds} seconds between executions")
+
     def create_agents(self) -> Dict[str, Agent]:
         """Create specialized AI agents using Groq"""
 
-        MODEL = "groq/compound-mini"
+        MODEL = "groq/llama-3.1-8b-instant"
 
         data_scout = Agent(
             role="Data Scout",
@@ -166,7 +177,7 @@ Synthesize all agent outputs into an executive report:
         ]
 
     def analyze_products(self, products: List[Dict]) -> Dict:
-        """Run the multi-agent analysis"""
+        """Run the multi-agent analysis with rate limiting"""
 
         logger.info("⚙️ Preparing crew and tasks...")
 
@@ -175,25 +186,45 @@ Synthesize all agent outputs into an executive report:
         agents = self.create_agents()
         tasks = self.create_tasks(agents, products_summary)
 
-        crew = Crew(
-            agents=list(agents.values()),
-            tasks=tasks,
-            process=Process.sequential,
-            verbose=True,
-        )
-
+        # Execute tasks sequentially with delays
         try:
-            logger.info("🚀 Crew execution started...")
-            result = crew.kickoff()
-            logger.info("✅ Crew execution completed")
-
-            if isinstance(result, str):
-                try:
-                    return json.loads(result)
-                except Exception:
-                    return {"result": result}
-
-            return result
+            logger.info("🚀 Sequential execution with rate limiting started...")
+            results = []
+            
+            for i, task in enumerate(tasks, 1):
+                logger.info(f"📋 Executing Task {i}/{len(tasks)}: {task.agent.role}")
+                
+                # Create a mini-crew for this single task
+                mini_crew = Crew(
+                    agents=[task.agent],
+                    tasks=[task],
+                    process=Process.sequential,
+                    verbose=True,
+                )
+                
+                task_result = mini_crew.kickoff()
+                results.append({
+                    "agent": task.agent.role,
+                    "output": str(task_result)
+                })
+                
+                logger.info(f"✅ Task {i} completed")
+                
+                # Add delay between tasks (except after the last one)
+                if i < len(tasks):
+                    logger.info(f"⏳ Waiting {self.task_delay_seconds} seconds before next task...")
+                    time.sleep(self.task_delay_seconds)
+            
+            # Final report is the last task's output
+            final_report = results[-1]["output"] if results else "No results generated"
+            
+            logger.info("✅ All tasks completed successfully")
+            
+            return {
+                "final_report": final_report,
+                "detailed_results": results,
+                "tasks_completed": len(results)
+            }
 
         except Exception as e:
             logger.error(f"❌ Crew execution failed: {e}")
@@ -220,4 +251,9 @@ Synthesize all agent outputs into an executive report:
 
 
 # Global instance
-crew_manager = RetailIntelligenceCrew()
+# Adjust task_delay_seconds here to change the delay between all task executions
+# Examples:
+#   - crew_manager = RetailIntelligenceCrew(task_delay_seconds=15)  # 15 seconds (default)
+#   - crew_manager = RetailIntelligenceCrew(task_delay_seconds=30)  # 30 seconds
+#   - crew_manager = RetailIntelligenceCrew(task_delay_seconds=60)  # 60 seconds (1 minute)
+crew_manager = RetailIntelligenceCrew(task_delay_seconds=60)
