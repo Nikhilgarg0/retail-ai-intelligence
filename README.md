@@ -98,6 +98,9 @@ MAX_RETRIES=3
 
 5. **Run the application**
 ```bash
+venv\Scripts\Activate.ps1
+```
+```bash
 python run_dashboard.py
 ```
 
