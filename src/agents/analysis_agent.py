@@ -1,6 +1,5 @@
 # src/agents/analysis_agent.py
 from google import genai
-from google.genai import types
 from config.settings import settings
 from typing import List, Dict
 import json
@@ -13,7 +12,6 @@ class ProductAnalysisAgent:
     """AI Agent to analyze scraped product data"""
     
     def __init__(self):
-        # Configure new Gemini client
         self.client = genai.Client(api_key=settings.gemini_api_key)
         logger.info("✅ Analysis Agent initialized with Gemini")
     
@@ -80,8 +78,6 @@ Keep insights concise and actionable. Focus on pricing strategy and competitive 
             )
             
             analysis_text = response.text
-            
-            # Extract JSON from response
             analysis = self._extract_json(analysis_text)
             
             logger.info("✅ Analysis complete!")
@@ -92,13 +88,19 @@ Keep insights concise and actionable. Focus on pricing strategy and competitive 
             return {"error": str(e)}
     
     def _prepare_product_summary(self, products: List[Dict]) -> str:
-        """Convert product list to readable summary"""
+        """Convert product list to readable summary - UPDATED FOR NEW SCHEMA"""
         summary_lines = []
         
         for i, product in enumerate(products, 1):
-            line = f"{i}. {product['title'][:60]}... | "
-            line += f"₹{product['price']}" if product['price'] else "Price N/A"
-            line += f" | Rating: {product['rating']}" if product['rating'] else ""
+            # Support both old schema (price) and new schema (current_price)
+            price = product.get('current_price') or product.get('price')
+            rating = product.get('current_rating') or product.get('rating')
+            title = product.get('title', 'Unknown')
+            
+            line = f"{i}. {title[:60]}... | "
+            line += f"₹{price:,.0f}" if price else "Price N/A"
+            line += f" | Rating: {rating}" if rating else ""
+            line += f" | Trend: {product.get('price_trend', 'N/A')}"
             summary_lines.append(line)
         
         return "\n".join(summary_lines)
@@ -106,14 +108,13 @@ Keep insights concise and actionable. Focus on pricing strategy and competitive 
     def _extract_json(self, text: str) -> Dict:
         """Extract JSON from AI response (handles markdown code blocks)"""
         try:
-            # Remove markdown code blocks if present
             text = text.strip()
             if text.startswith('```json'):
-                text = text[7:]  # Remove ```json
+                text = text[7:]
             if text.startswith('```'):
-                text = text[3:]  # Remove ```
+                text = text[3:]
             if text.endswith('```'):
-                text = text[:-3]  # Remove trailing ```
+                text = text[:-3]
             
             text = text.strip()
             return json.loads(text)
@@ -123,7 +124,7 @@ Keep insights concise and actionable. Focus on pricing strategy and competitive 
     
     def compare_competitors(self, platform_data: Dict[str, List[Dict]]) -> Dict:
         """
-        Compare products across different platforms (Amazon vs Flipkart)
+        Compare products across different platforms
         
         Args:
             platform_data: {"amazon": [products], "flipkart": [products]}

@@ -52,9 +52,9 @@ class AmazonScraper(BaseScraper):
         return products
     
     def _extract_product_info(self, product_div) -> Optional[Dict]:
-        """Extract information from a single product card - FIXED VERSION"""
+        """Extract information from a single product card - UPDATED FOR NEW SCHEMA"""
         try:
-            # Product title - FIXED: Get text from h2 tag
+            # Product title
             title_element = product_div.find('h2')
             title = title_element.get_text(strip=True) if title_element else None
             
@@ -62,13 +62,19 @@ class AmazonScraper(BaseScraper):
                 logger.debug("No title found, skipping product")
                 return None
             
-            # Price - Extract whole and fraction parts
+            # Product ID (ASIN) - CRITICAL for unique tracking
+            asin = product_div.get('data-asin', None)
+            
+            if not asin:
+                logger.debug("No ASIN found, skipping product")
+                return None
+            
+            # Price
             price_whole = product_div.find('span', class_='a-price-whole')
             price = None
             
             if price_whole:
                 price_text = price_whole.get_text(strip=True)
-                # Remove comma and convert
                 price = clean_price(price_text)
             
             # Rating
@@ -79,20 +85,18 @@ class AmazonScraper(BaseScraper):
             reviews_element = product_div.find('span', {'class': 'a-size-base', 'dir': 'auto'})
             reviews_text = reviews_element.get_text(strip=True) if reviews_element else "0"
             
-            # Product URL - Find the link inside h2
+            # Product URL
             link_element = product_div.find('h2').find('a') if product_div.find('h2') else None
             url = self.base_url + link_element['href'] if link_element and 'href' in link_element.attrs else None
-            
-            # Product ID (ASIN)
-            asin = product_div.get('data-asin', None)
             
             # Image
             img_element = product_div.find('img', class_='s-image')
             image_url = img_element['src'] if img_element and 'src' in img_element.attrs else None
             
+            # NEW SCHEMA FORMAT
             product_data = {
                 'platform': self.platform,
-                'product_id': asin,
+                'product_id': asin,  # CRITICAL: Unique ID for tracking
                 'title': title,
                 'price': price,
                 'rating': rating,
@@ -102,7 +106,7 @@ class AmazonScraper(BaseScraper):
                 'category': None,  # Will be set when saving
             }
             
-            logger.debug(f"Extracted: {title[:50]}... | ₹{price}")
+            logger.debug(f"Extracted: {title[:50]}... | ASIN: {asin} | ₹{price}")
             return product_data
             
         except Exception as e:

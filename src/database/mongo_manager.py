@@ -1,4 +1,5 @@
-from pymongo import MongoClient
+# src/database/mongo_manager.py
+from pymongo import MongoClient, ASCENDING, DESCENDING
 from datetime import datetime
 from typing import List, Dict, Optional
 from config.settings import settings
@@ -15,31 +16,212 @@ class MongoDBManager:
         self.db = self.client['retail_intelligence']
         
         # Collections
-        self.products = self.db['products']  # Raw scraped product data
-        self.price_history = self.db['price_history']  # Price tracking over time
-        self.competitors = self.db['competitors']  # Competitor analysis
-        self.reports = self.db['reports']  # AI-generated reports
+        self.products = self.db['products']
+        self.price_history = self.db['price_history']  # Separate collection for history
+        self.reports = self.db['reports']
+        
+        # Create indexes for performance
+        self._create_indexes()
         
         logger.info("✅ MongoDB Manager initialized")
     
-    def save_product(self, product_data: Dict) -> str:
-        """Save a scraped product to database"""
-        product_data['scraped_at'] = datetime.now()
-        product_data['updated_at'] = datetime.now()
+    def _create_indexes(self):
+        """Create database indexes for better performance"""
+        # Unique index on platform + product_id
+        self.products.create_index(
+            [("platform", ASCENDING), ("product_id", ASCENDING)],
+            unique=True,
+            name="unique_product"
+        )
         
-        result = self.products.insert_one(product_data)
-        logger.info(f"Saved product: {product_data.get('title', 'Unknown')[:50]}")
+        # Index for querying by category and platform
+        self.products.create_index([("category", ASCENDING), ("platform", ASCENDING)])
+        
+        # Index for price history queries
+        self.price_history.create_index([("unique_id", ASCENDING), ("timestamp", DESCENDING)])
+        
+        logger.info("✅ Database indexes created")
+    
+    def upsert_product(self, product_data: Dict) -> Dict:
+        """
+        Insert or update a product (intelligent merge)
+        
+        Args:
+            product_data: Product information from scraper
+            
+        Returns:
+            Result with action taken (inserted/updated)
+        """
+        platform = product_data.get('platform')
+        product_id = product_data.get('product_id')
+        
+        if not platform or not product_id:
+            logger.error("Missing platform or product_id")
+            return {"error": "Missing required fields"}
+        
+        # Create unique identifier
+        unique_id = f"{platform}_{product_id}"
+        
+        # Check if product exists
+        existing = self.products.find_one({
+            'platform': platform,
+            'product_id': product_id
+        })
+        
+        timestamp = datetime.now()
+        
+        if existing:
+            # UPDATE existing product
+            result = self._update_existing_product(existing, product_data, timestamp)
+            action = "updated"
+        else:
+            # INSERT new product
+            result = self._insert_new_product(product_data, unique_id, timestamp)
+            action = "inserted"
+        
+        logger.info(f"✅ Product {action}: {product_data.get('title', 'Unknown')[:50]}")
+        return {"action": action, "unique_id": unique_id}
+    
+    def _insert_new_product(self, product_data: Dict, unique_id: str, timestamp: datetime) -> str:
+        """Insert a brand new product"""
+        new_product = {
+            # Unique identifier
+            'unique_id': unique_id,
+            'platform': product_data.get('platform'),
+            'product_id': product_data.get('product_id'),
+            
+            # Product info
+            'title': product_data.get('title'),
+            'category': product_data.get('category', 'uncategorized'),
+            'url': product_data.get('url'),
+            'image_url': product_data.get('image_url'),
+            
+            # Current state
+            'current_price': product_data.get('price'),
+            'current_rating': product_data.get('rating'),
+            'current_reviews': product_data.get('reviews'),
+            'in_stock': True,
+            'last_seen': timestamp,
+            
+            # Historical tracking
+            'first_seen': timestamp,
+            'price_history': [
+                {'timestamp': timestamp, 'price': product_data.get('price')}
+            ] if product_data.get('price') else [],
+            'rating_history': [
+                {'timestamp': timestamp, 'rating': product_data.get('rating')}
+            ] if product_data.get('rating') else [],
+            
+            # Computed metrics
+            'price_trend': 'stable',
+            'price_change_percent': 0.0,
+            'lowest_price': product_data.get('price'),
+            'highest_price': product_data.get('price'),
+            'average_price': product_data.get('price'),
+            'times_scraped': 1,
+            
+            # Metadata
+            'created_at': timestamp,
+            'updated_at': timestamp
+        }
+        
+        result = self.products.insert_one(new_product)
         return str(result.inserted_id)
     
-    def save_products_bulk(self, products: List[Dict]) -> List[str]:
-        """Save multiple products at once"""
-        for product in products:
-            product['scraped_at'] = datetime.now()
-            product['updated_at'] = datetime.now()
+    def _update_existing_product(self, existing: Dict, new_data: Dict, timestamp: datetime) -> str:
+        """Update an existing product with new scrape data"""
+        updates = {
+            'last_seen': timestamp,
+            'updated_at': timestamp,
+            'times_scraped': existing.get('times_scraped', 0) + 1
+        }
         
-        result = self.products.insert_many(products)
-        logger.info(f"Saved {len(products)} products")
-        return [str(id) for id in result.inserted_ids]
+        # Update current state
+        if new_data.get('price'):
+            updates['current_price'] = new_data['price']
+        if new_data.get('rating'):
+            updates['current_rating'] = new_data['rating']
+        if new_data.get('reviews'):
+            updates['current_reviews'] = new_data['reviews']
+        if new_data.get('url'):
+            updates['url'] = new_data['url']
+        
+        # Add to price history if price changed
+        old_price = existing.get('current_price')
+        new_price = new_data.get('price')
+        
+        if new_price and old_price != new_price:
+            # Add new price point
+            price_entry = {'timestamp': timestamp, 'price': new_price}
+            self.products.update_one(
+                {'_id': existing['_id']},
+                {'$push': {'price_history': price_entry}}
+            )
+            
+            # Recalculate price metrics
+            all_prices = [p['price'] for p in existing.get('price_history', [])] + [new_price]
+            updates['lowest_price'] = min(all_prices)
+            updates['highest_price'] = max(all_prices)
+            updates['average_price'] = sum(all_prices) / len(all_prices)
+            
+            # Calculate price trend
+            if new_price < old_price:
+                updates['price_trend'] = 'down'
+                updates['price_change_percent'] = ((new_price - old_price) / old_price) * 100
+            elif new_price > old_price:
+                updates['price_trend'] = 'up'
+                updates['price_change_percent'] = ((new_price - old_price) / old_price) * 100
+            else:
+                updates['price_trend'] = 'stable'
+                updates['price_change_percent'] = 0.0
+        
+        # Add to rating history if rating changed
+        old_rating = existing.get('current_rating')
+        new_rating = new_data.get('rating')
+        
+        if new_rating and old_rating != new_rating:
+            rating_entry = {'timestamp': timestamp, 'rating': new_rating}
+            self.products.update_one(
+                {'_id': existing['_id']},
+                {'$push': {'rating_history': rating_entry}}
+            )
+        
+        # Apply all updates
+        self.products.update_one(
+            {'_id': existing['_id']},
+            {'$set': updates}
+        )
+        
+        return str(existing['_id'])
+    
+    def save_products_bulk(self, products: List[Dict]) -> Dict:
+        """
+        Save multiple products (uses upsert for each)
+        
+        Returns:
+            Statistics about the operation
+        """
+        results = {
+            'inserted': 0,
+            'updated': 0,
+            'errors': 0
+        }
+        
+        for product in products:
+            try:
+                result = self.upsert_product(product)
+                if 'error' in result:
+                    results['errors'] += 1
+                elif result['action'] == 'inserted':
+                    results['inserted'] += 1
+                elif result['action'] == 'updated':
+                    results['updated'] += 1
+            except Exception as e:
+                logger.error(f"Error upserting product: {e}")
+                results['errors'] += 1
+        
+        logger.info(f"📊 Bulk save: {results['inserted']} new, {results['updated']} updated, {results['errors']} errors")
+        return results
     
     def get_products_by_category(self, category: str) -> List[Dict]:
         """Get all products in a category"""
@@ -47,26 +229,59 @@ class MongoDBManager:
         return products
     
     def get_products_by_platform(self, platform: str) -> List[Dict]:
-        """Get all products from a platform (amazon, flipkart, etc.)"""
+        """Get all products from a platform"""
         products = list(self.products.find({'platform': platform}))
         return products
     
-    def save_price_history(self, product_id: str, price: float, platform: str):
-        """Track price changes over time"""
-        price_record = {
-            'product_id': product_id,
+    def get_product_by_id(self, platform: str, product_id: str) -> Optional[Dict]:
+        """Get a specific product"""
+        return self.products.find_one({
             'platform': platform,
-            'price': price,
-            'recorded_at': datetime.now()
-        }
-        self.price_history.insert_one(price_record)
+            'product_id': product_id
+        })
     
-    def get_price_trends(self, product_id: str) -> List[Dict]:
-        """Get price history for a product"""
-        history = list(self.price_history.find(
-            {'product_id': product_id}
-        ).sort('recorded_at', -1))
-        return history
+    def get_price_drops(self, min_percent: float = 10.0) -> List[Dict]:
+        """Get products with recent price drops"""
+        products = list(self.products.find({
+            'price_trend': 'down',
+            'price_change_percent': {'$lt': -min_percent}
+        }).sort('price_change_percent', ASCENDING))
+        return products
+    
+    def get_trending_products(self, limit: int = 10) -> List[Dict]:
+        """Get products with best ratings and recent activity"""
+        products = list(self.products.find({
+            'current_rating': {'$gte': 4.0}
+        }).sort([
+            ('current_rating', DESCENDING),
+            ('last_seen', DESCENDING)
+        ]).limit(limit))
+        return products
+    
+    def get_all_products(self, limit: int = 100) -> List[Dict]:
+        """Get all products with optional limit"""
+        products = list(self.products.find().sort('updated_at', DESCENDING).limit(limit))
+        return products
+    
+    def get_database_stats(self) -> Dict:
+        """Get statistics about the database"""
+        total_products = self.products.count_documents({})
+        total_reports = self.reports.count_documents({})
+        
+        platforms = self.products.distinct('platform')
+        categories = self.products.distinct('category')
+        
+        price_drops = self.products.count_documents({'price_trend': 'down'})
+        price_increases = self.products.count_documents({'price_trend': 'up'})
+        
+        return {
+            'total_products': total_products,
+            'total_reports': total_reports,
+            'platforms': platforms,
+            'categories': categories,
+            'price_drops': price_drops,
+            'price_increases': price_increases
+        }
     
     def save_report(self, report_data: Dict) -> str:
         """Save AI-generated analysis report"""
@@ -78,8 +293,14 @@ class MongoDBManager:
     def get_latest_report(self, report_type: str = None) -> Optional[Dict]:
         """Get the most recent report"""
         query = {'report_type': report_type} if report_type else {}
-        report = self.reports.find_one(query, sort=[('generated_at', -1)])
+        report = self.reports.find_one(query, sort=[('generated_at', DESCENDING)])
         return report
+    
+    def clean_database(self):
+        """Remove all products (use with caution!)"""
+        result = self.products.delete_many({})
+        logger.warning(f"⚠️ Deleted {result.deleted_count} products")
+        return result.deleted_count
     
     def close(self):
         """Close database connection"""
