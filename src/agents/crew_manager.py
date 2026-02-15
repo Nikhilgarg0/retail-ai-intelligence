@@ -4,7 +4,6 @@ import json
 import logging
 import time
 
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -15,12 +14,14 @@ class RetailIntelligenceCrew:
     def __init__(self, task_delay_seconds: int = 15):
         """
         Initialize the crew manager.
-        
+
         Args:
             task_delay_seconds: Delay in seconds between task executions to avoid rate limits (default: 15)
         """
         self.task_delay_seconds = task_delay_seconds
-        logger.info(f"⏱️ Task delay set to {task_delay_seconds} seconds between executions")
+        logger.info(
+            f"⏱️ Task delay set to {task_delay_seconds} seconds between executions"
+        )
 
     def create_agents(self) -> Dict[str, Agent]:
         """Create specialized AI agents using Groq"""
@@ -95,9 +96,7 @@ class RetailIntelligenceCrew:
             "writer": report_writer,
         }
 
-    def create_tasks(
-        self, agents: Dict[str, Agent], products_data: str
-    ) -> List[Task]:
+    def create_tasks(self, agents: Dict[str, Agent], products_data: str) -> List[Task]:
         """Create tasks for each agent"""
 
         scout_task = Task(
@@ -190,10 +189,10 @@ Synthesize all agent outputs into an executive report:
         try:
             logger.info("🚀 Sequential execution with rate limiting started...")
             results = []
-            
+
             for i, task in enumerate(tasks, 1):
                 logger.info(f"📋 Executing Task {i}/{len(tasks)}: {task.agent.role}")
-                
+
                 # Create a mini-crew for this single task
                 mini_crew = Crew(
                     agents=[task.agent],
@@ -201,29 +200,28 @@ Synthesize all agent outputs into an executive report:
                     process=Process.sequential,
                     verbose=True,
                 )
-                
+
                 task_result = mini_crew.kickoff()
-                results.append({
-                    "agent": task.agent.role,
-                    "output": str(task_result)
-                })
-                
+                results.append({"agent": task.agent.role, "output": str(task_result)})
+
                 logger.info(f"✅ Task {i} completed")
-                
+
                 # Add delay between tasks (except after the last one)
                 if i < len(tasks):
-                    logger.info(f"⏳ Waiting {self.task_delay_seconds} seconds before next task...")
+                    logger.info(
+                        f"⏳ Waiting {self.task_delay_seconds} seconds before next task..."
+                    )
                     time.sleep(self.task_delay_seconds)
-            
+
             # Final report is the last task's output
             final_report = results[-1]["output"] if results else "No results generated"
-            
+
             logger.info("✅ All tasks completed successfully")
-            
+
             return {
                 "final_report": final_report,
                 "detailed_results": results,
-                "tasks_completed": len(results)
+                "tasks_completed": len(results),
             }
 
         except Exception as e:

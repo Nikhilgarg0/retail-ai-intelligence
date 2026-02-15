@@ -18,8 +18,12 @@ print(f"\n✅ Found {len(products)} products\n")
 for i, product in enumerate(products, 1):
     print(f"Product {i}:")
     print(f"  Title: {product['title'][:60]}...")
-    print(f"  Price: ₹{product['price']}" if product['price'] else "  Price: Not available")
-    print(f"  Rating: {product['rating']}" if product['rating'] else "  Rating: N/A")
+    print(
+        f"  Price: ₹{product['price']}"
+        if product["price"]
+        else "  Price: Not available"
+    )
+    print(f"  Rating: {product['rating']}" if product["rating"] else "  Rating: N/A")
     print(f"  ASIN: {product['product_id']}")
     print()
 
@@ -27,13 +31,13 @@ for i, product in enumerate(products, 1):
 if products:
     print("\n💾 Saving to MongoDB...")
     for product in products:
-        product['category'] = 'electronics'  # Add category
-    
+        product["category"] = "electronics"  # Add category
+
     ids = db_manager.save_products_bulk(products)
     print(f"✅ Saved {len(ids)} products to database")
-    
+
     # Verify in database
-    saved_products = db_manager.get_products_by_platform('amazon')
+    saved_products = db_manager.get_products_by_platform("amazon")
     print(f"✅ Total Amazon products in database: {len(saved_products)}")
 
 print("\n🎉 Amazon scraper test complete!")
