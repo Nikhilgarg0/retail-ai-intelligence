@@ -1,51 +1,42 @@
-# test_crew_ai.py
-import os
-from config.settings import settings  # Correct path: config/settings.py
+# tests/test_crew_ai.py
+import pytest
 from src.database.mongo_manager import db_manager
 from src.agents.crew_manager import crew_manager
-import json
 
-# Set Groq API key as environment variable for CrewAI
-os.environ["GROQ_API_KEY"] = settings.groq_api_key
 
-print("Testing CrewAI Multi-Agent System...\n")
-print("=" * 60)
-
-# Get products from database
-print("📊 Fetching products from MongoDB...")
-products = db_manager.get_products_by_platform("amazon")
-
-if not products:
-    print("❌ No products found! Run the scraper first.")
-    print("   Command: python test_amazon_scraper.py")
-    exit()
-
-print(f"✅ Found {len(products)} products\n")
-print("=" * 60)
-
-# Run CrewAI analysis
-print("\n🤖 Starting CrewAI Multi-Agent Analysis...")
-print("   This will take 30-60 seconds...\n")
-print("=" * 60)
-
-result = crew_manager.analyze_products(products)
-
-print("\n" + "=" * 60)
-print("📈 CREWAI ANALYSIS RESULTS")
-print("=" * 60)
-print(json.dumps(result, indent=2))
-print("=" * 60)
-
-# Save to database
-print("\n💾 Saving CrewAI report to database...")
-report_data = {
-    "report_type": "crew_ai_analysis",
-    "platform": "amazon",
-    "analysis": result,
-    "products_analyzed": len(products),
-}
-
-report_id = db_manager.save_report(report_data)
-print(f"✅ Report saved with ID: {report_id}")
-
-print("\n🎉 CrewAI test complete!")
+class TestCrewAI:
+    """Test CrewAI multi-agent system"""
+    
+    @pytest.mark.slow
+    def test_crew_manager_initialization(self):
+        """Test that crew manager initializes correctly"""
+        assert crew_manager is not None
+        assert crew_manager.task_delay_seconds > 0
+    
+    @pytest.mark.slow
+    def test_create_agents(self):
+        """Test agent creation"""
+        agents = crew_manager.create_agents()
+        
+        assert 'scout' in agents
+        assert 'pricing' in agents
+        assert 'risk' in agents
+        assert 'forecast' in agents
+        assert 'writer' in agents
+    
+    @pytest.mark.slow
+    @pytest.mark.skipif(
+        db_manager.products.count_documents({}) == 0,
+        reason="No products in database to analyze"
+    )
+    def test_analyze_products(self):
+        """Test full crew analysis (slow test - skipped in CI)"""
+        # Get some products from database
+        products = list(db_manager.products.find().limit(5))
+        
+        if len(products) > 0:
+            # This will take several minutes
+            result = crew_manager.analyze_products(products)
+            
+            assert result is not None
+            assert 'error' not in result or result.get('tasks_completed', 0) > 0
