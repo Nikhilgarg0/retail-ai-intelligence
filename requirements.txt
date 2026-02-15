@@ -35,3 +35,13 @@ reportlab==4.0.7
 python-dotenv==1.0.0
 pydantic==2.5.2
 pydantic-settings==2.1.0
+
+
+# Development and Testing
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+black==23.12.1
+flake8==6.1.0
+pylint==3.0.3
+bandit==1.7.5

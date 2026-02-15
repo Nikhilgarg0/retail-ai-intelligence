@@ -1,3 +1,12 @@
+# Retail Intelligence Platform
+
+![CI/CD Status](https://github.com/Nikhilgarg0/retail-ai-intelligence/workflows/Retail%20Intelligence%20CI%2FCD/badge.svg)
+![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+
+AI-Powered competitive intelligence and market analysis platform for e-commerce retailers.
+
+
 # 🛒 AI-Powered Retail Intelligence Platform
 
 > Automated competitive intelligence and market analysis for retail businesses
