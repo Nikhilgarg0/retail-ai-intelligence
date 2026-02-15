@@ -84,6 +84,10 @@ class MongoDBManager:
     
     def _insert_new_product(self, product_data: Dict, unique_id: str, timestamp: datetime) -> str:
         """Insert a brand new product"""
+        
+        # Handle None price values
+        price = product_data.get('price')
+        
         new_product = {
             # Unique identifier
             'unique_id': unique_id,
@@ -97,7 +101,7 @@ class MongoDBManager:
             'image_url': product_data.get('image_url'),
             
             # Current state
-            'current_price': product_data.get('price'),
+            'current_price': price,
             'current_rating': product_data.get('rating'),
             'current_reviews': product_data.get('reviews'),
             'in_stock': True,
@@ -106,18 +110,18 @@ class MongoDBManager:
             # Historical tracking
             'first_seen': timestamp,
             'price_history': [
-                {'timestamp': timestamp, 'price': product_data.get('price')}
-            ] if product_data.get('price') else [],
+                {'timestamp': timestamp, 'price': price}
+            ] if price is not None else [],  # Only add if price exists
             'rating_history': [
                 {'timestamp': timestamp, 'rating': product_data.get('rating')}
-            ] if product_data.get('rating') else [],
+            ] if product_data.get('rating') is not None else [],  # Only add if rating exists
             
-            # Computed metrics
+            # Computed metrics - handle None values
             'price_trend': 'stable',
             'price_change_percent': 0.0,
-            'lowest_price': product_data.get('price'),
-            'highest_price': product_data.get('price'),
-            'average_price': product_data.get('price'),
+            'lowest_price': price if price is not None else None,
+            'highest_price': price if price is not None else None,
+            'average_price': price if price is not None else None,
             'times_scraped': 1,
             
             # Metadata
@@ -128,8 +132,9 @@ class MongoDBManager:
         result = self.products.insert_one(new_product)
         return str(result.inserted_id)
     
+    
     def _update_existing_product(self, existing: Dict, new_data: Dict, timestamp: datetime) -> str:
-        """Update an existing product with new scrape data"""
+        """Update an existing product with new scrape data - FIXED for None values"""
         updates = {
             'last_seen': timestamp,
             'updated_at': timestamp,
@@ -137,9 +142,9 @@ class MongoDBManager:
         }
         
         # Update current state
-        if new_data.get('price'):
+        if new_data.get('price') is not None:
             updates['current_price'] = new_data['price']
-        if new_data.get('rating'):
+        if new_data.get('rating') is not None:
             updates['current_rating'] = new_data['rating']
         if new_data.get('reviews'):
             updates['current_reviews'] = new_data['reviews']
@@ -150,7 +155,8 @@ class MongoDBManager:
         old_price = existing.get('current_price')
         new_price = new_data.get('price')
         
-        if new_price and old_price != new_price:
+        # Only process price updates if new price is not None
+        if new_price is not None and old_price != new_price:
             # Add new price point
             price_entry = {'timestamp': timestamp, 'price': new_price}
             self.products.update_one(
@@ -158,28 +164,36 @@ class MongoDBManager:
                 {'$push': {'price_history': price_entry}}
             )
             
-            # Recalculate price metrics
-            all_prices = [p['price'] for p in existing.get('price_history', [])] + [new_price]
-            updates['lowest_price'] = min(all_prices)
-            updates['highest_price'] = max(all_prices)
-            updates['average_price'] = sum(all_prices) / len(all_prices)
+            # Recalculate price metrics - handle None values safely
+            price_history = existing.get('price_history', [])
+            all_prices = [p['price'] for p in price_history if p.get('price') is not None]
+            all_prices.append(new_price)
             
-            # Calculate price trend
-            if new_price < old_price:
-                updates['price_trend'] = 'down'
-                updates['price_change_percent'] = ((new_price - old_price) / old_price) * 100
-            elif new_price > old_price:
-                updates['price_trend'] = 'up'
-                updates['price_change_percent'] = ((new_price - old_price) / old_price) * 100
-            else:
-                updates['price_trend'] = 'stable'
-                updates['price_change_percent'] = 0.0
+            # Filter out any None values (just in case)
+            all_prices = [p for p in all_prices if p is not None]
+            
+            if all_prices:  # Only calculate if we have valid prices
+                updates['lowest_price'] = min(all_prices)
+                updates['highest_price'] = max(all_prices)
+                updates['average_price'] = sum(all_prices) / len(all_prices)
+                
+                # Calculate price trend (only if old price exists and is not None)
+                if old_price is not None:
+                    if new_price < old_price:
+                        updates['price_trend'] = 'down'
+                        updates['price_change_percent'] = ((new_price - old_price) / old_price) * 100
+                    elif new_price > old_price:
+                        updates['price_trend'] = 'up'
+                        updates['price_change_percent'] = ((new_price - old_price) / old_price) * 100
+                    else:
+                        updates['price_trend'] = 'stable'
+                        updates['price_change_percent'] = 0.0
         
         # Add to rating history if rating changed
         old_rating = existing.get('current_rating')
         new_rating = new_data.get('rating')
         
-        if new_rating and old_rating != new_rating:
+        if new_rating is not None and old_rating != new_rating:
             rating_entry = {'timestamp': timestamp, 'rating': new_rating}
             self.products.update_one(
                 {'_id': existing['_id']},
@@ -193,7 +207,8 @@ class MongoDBManager:
         )
         
         return str(existing['_id'])
-    
+
+
     def save_products_bulk(self, products: List[Dict]) -> Dict:
         """
         Save multiple products (uses upsert for each)

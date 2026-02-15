@@ -1,294 +1,403 @@
 # src/ui/dashboard.py
 import streamlit as st
 from src.scrapers.amazon_scraper import AmazonScraper
+from src.scrapers.flipkart_scraper import FlipkartScraper
 from src.database.mongo_manager import db_manager
 from src.agents.analysis_agent import ProductAnalysisAgent
-import pandas as pd
-import json
 from src.utils.pdf_generator import ReportPDFGenerator
+import pandas as pd
 from datetime import datetime
 
-# Page config
+# Page configuration
 st.set_page_config(
-    page_title="Retail Intelligence System",
-    page_icon="🛒",
-    layout="wide"
+    page_title="Retail Intelligence Platform",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Title
-st.title("🛒 AI Retail Intelligence System")
-st.markdown("**Scrape, Analyze, and Get Insights from E-commerce Data**")
-
-# Sidebar
-st.sidebar.header("⚙️ Controls")
-action = st.sidebar.selectbox(
-    "Choose Action",
-    ["🏠 Home", "🔍 Scrape Products", "📊 View Database", "📉 Price Tracking", "🤖 AI Analysis", "📈 Reports"]
-)
+# Custom CSS for professional look
+st.markdown("""
+    <style>
+    .main-header {
+        font-size: 2.5rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+    .sub-header {
+        font-size: 1.2rem;
+        color: #6b7280;
+        margin-bottom: 2rem;
+    }
+    .metric-card {
+        background-color: #f9fafb;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-left: 4px solid #3b82f6;
+    }
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 2rem;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 3rem;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # Initialize components
 @st.cache_resource
-def get_scraper():
-    return AmazonScraper()
+def get_scrapers():
+    return {
+        'amazon': AmazonScraper(),
+        'flipkart': FlipkartScraper()
+    }
 
 @st.cache_resource
 def get_agent():
     return ProductAnalysisAgent()
 
-scraper = get_scraper()
+@st.cache_resource
+def get_pdf_gen():
+    return ReportPDFGenerator()
+
+scrapers = get_scrapers()
 agent = get_agent()
+pdf_gen = get_pdf_gen()
 
-pdf_gen = ReportPDFGenerator()
-
-# ==================== HOME ====================
-if action == "🏠 Home":
-    st.header("Welcome to Your Retail Intelligence System")
+# Sidebar Navigation
+with st.sidebar:
+    st.title("Navigation")
     
-    col1, col2, col3 = st.columns(3)
+    page = st.radio(
+    "Navigate",
+    ["Dashboard", "Data Collection", "Product Explorer", "Price Analytics", "AI Insights", "Reports"],
+    label_visibility="collapsed"
+)
+    
+    st.divider()
+    
+    # Database stats in sidebar
+    stats = db_manager.get_database_stats()
+    st.subheader("System Status")
+    st.metric("Total Products", stats['total_products'])
+    st.metric("Active Platforms", len(stats['platforms']))
+    st.metric("Reports Generated", stats['total_reports'])
+
+# Main content area
+if page == "Dashboard":
+    st.markdown('<p class="main-header">Retail Intelligence Platform</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-header">Real-time competitive intelligence and market analysis</p>', unsafe_allow_html=True)
+    
+    # Key metrics
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        total_products = db_manager.products.count_documents({})
-        st.metric("📦 Total Products", total_products)
+        st.metric(
+            label="Total Products Tracked",
+            value=stats['total_products'],
+            delta="Active monitoring"
+        )
     
     with col2:
-        total_reports = db_manager.reports.count_documents({})
-        st.metric("📋 Reports Generated", total_reports)
+        st.metric(
+            label="Price Drops Detected",
+            value=stats['price_drops'],
+            delta=f"-{stats['price_drops']} opportunities"
+        )
     
     with col3:
-        st.metric("🏪 Platforms", "1 (Amazon)")
+        st.metric(
+            label="Price Increases",
+            value=stats['price_increases'],
+            delta=f"+{stats['price_increases']} trends"
+        )
     
-    st.markdown("---")
-    st.subheader("🚀 Quick Start Guide")
+    with col4:
+        st.metric(
+            label="Platforms Monitored",
+            value=len(stats['platforms']),
+            delta="Multi-platform"
+        )
+    
+    st.divider()
+    
+    # Quick actions
+    st.subheader("Quick Actions")
     st.markdown("""
-    1. **🔍 Scrape Products** - Search Amazon and collect product data
-    2. **📊 View Database** - See all scraped products
-    3. **🤖 AI Analysis** - Get AI-powered insights on your data
-    4. **📈 Reports** - View historical analysis reports
+    Use the sidebar navigation to:
+    - **Data Collection** - Scrape products from Amazon and Flipkart
+    - **Product Explorer** - Browse and analyze collected data
+    - **Price Analytics** - Track price changes and opportunities
+    - **AI Insights** - Generate intelligent market analysis
+    - **Reports** - View historical analysis reports
     """)
-
-# ==================== SCRAPE PRODUCTS ====================
-elif action == "🔍 Scrape Products":
-    st.header("🔍 Scrape Amazon Products")
     
+    st.divider()
+    
+    # Recent activity
+    st.subheader("Recent Activity")
+    
+    # Get recent products
+    recent_products = db_manager.get_all_products(limit=10)
+    
+    if recent_products:
+        activity_data = []
+        for p in recent_products:
+            activity_data.append({
+                'Platform': p.get('platform', 'N/A').upper(),
+                'Product': p.get('title', 'Unknown')[:60] + '...',
+                'Current Price': f"₹{p.get('current_price', 0):,.0f}" if p.get('current_price') else "N/A",
+                'Trend': p.get('price_trend', 'stable').capitalize(),
+                'Last Updated': p.get('last_seen', 'N/A')
+            })
+        
+        df = pd.DataFrame(activity_data)
+        st.dataframe(df, use_container_width=True, hide_index=True)
+    else:
+        st.info("No activity yet. Start by collecting data from e-commerce platforms.")
+
+elif page == "Data Collection":
+    st.header("Data Collection")
+    st.markdown("Scrape product data from e-commerce platforms")
+    
+    # Configuration
     col1, col2 = st.columns([3, 1])
     
     with col1:
         search_query = st.text_input(
             "Search Query",
-            placeholder="e.g., wireless headphones, samsung phone, laptop"
+            placeholder="Enter product name or category",
+            help="Example: wireless headphones, laptop, smartphone"
         )
     
     with col2:
-        max_results = st.number_input("Max Products", min_value=1, max_value=20, value=5)
+        max_results = st.number_input(
+            "Maximum Results",
+            min_value=1,
+            max_value=50,
+            value=10,
+            help="Number of products to scrape"
+        )
     
-    if st.button("🚀 Start Scraping", type="primary"):
+    # Platform and category selection
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        platform = st.selectbox(
+            "Platform",
+            options=["Amazon", "Flipkart"],
+            help="Select e-commerce platform"
+        )
+    
+    with col2:
+        category = st.selectbox(
+            "Category",
+            options=["Electronics", "Clothing", "Cosmetics", "Groceries", "Home & Kitchen"],
+            help="Product category for better organization"
+        )
+    
+    # Scrape button
+    if st.button("Start Collection", type="primary", use_container_width=True):
         if search_query:
-            with st.spinner(f"Scraping Amazon for '{search_query}'..."):
+            scraper = scrapers[platform.lower()]
+            
+            with st.spinner(f"Collecting data from {platform}..."):
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                status_text.text("Initializing scraper...")
+                progress_bar.progress(20)
+                
                 products = scraper.search_products(search_query, max_results=max_results)
+                progress_bar.progress(60)
                 
                 if products:
-                    st.success(f"✅ Found {len(products)} products!")
+                    status_text.text("Processing results...")
                     
                     # Add category
                     for product in products:
-                        product['category'] = 'electronics'
+                        product['category'] = category.lower()
                     
-                    # Save to database with NEW upsert logic
+                    # Save to database
                     results = db_manager.save_products_bulk(products)
-                    st.success(f"💾 Database Updated:")
-                    st.write(f"  ✅ New products: {results['inserted']}")
-                    st.write(f"  🔄 Updated products: {results['updated']}")
-                    if results['errors'] > 0:
-                        st.warning(f"  ⚠️ Errors: {results['errors']}")
+                    progress_bar.progress(100)
+                    
+                    status_text.empty()
+                    progress_bar.empty()
+                    
+                    # Results summary
+                    st.success(f"Collection completed: {len(products)} products processed")
+                    
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("New Products", results['inserted'])
+                    with col2:
+                        st.metric("Updated Products", results['updated'])
+                    with col3:
+                        st.metric("Errors", results['errors'])
                     
                     # Display results
-                    st.subheader("Scraped Products")
-                    df = pd.DataFrame(products)
-                    df = df[['title', 'price', 'rating', 'reviews', 'platform']]
-                    st.dataframe(df, use_container_width=True)
+                    st.subheader("Collected Products")
+                    
+                    df_data = []
+                    for p in products:
+                        df_data.append({
+                            'Title': p.get('title', 'Unknown')[:50] + '...',
+                            'Price': f"₹{p.get('price'):,.0f}" if p.get('price') else "N/A",
+                            'Rating': f"{p.get('rating'):.1f}" if p.get('rating') else "N/A",
+                            'Platform': p.get('platform', 'N/A').upper()
+                        })
+                    
+                    df = pd.DataFrame(df_data)
+                    st.dataframe(df, use_container_width=True, hide_index=True)
                 else:
-                    st.error("❌ No products found. Try a different search term.")
+                    st.error("No products found. Please try a different search query.")
         else:
-            st.warning("⚠️ Please enter a search query")
+            st.warning("Please enter a search query")
 
-# ==================== VIEW DATABASE ====================
-elif action == "📊 View Database":
-    st.header("📊 Database Explorer")
-    
-    # Database Statistics at top
-    stats = db_manager.get_database_stats()
-    
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("Total Products", stats['total_products'])
-    with col2:
-        st.metric("Price Drops", stats['price_drops'], delta=f"-{stats['price_drops']}")
-    with col3:
-        st.metric("Price Increases", stats['price_increases'], delta=f"+{stats['price_increases']}")
-    with col4:
-        st.metric("Platforms", len(stats['platforms']))
-    
-    st.markdown("---")
+elif page == "Product Explorer":
+    st.header("Product Explorer")
+    st.markdown("Browse and analyze collected product data")
     
     # Filters
     col1, col2, col3 = st.columns(3)
     
     with col1:
         platform_filter = st.selectbox(
-            "Filter by Platform",
-            options=["All"] + stats['platforms']
+            "Platform",
+            options=["All"] + [p.upper() for p in stats['platforms']]
         )
     
     with col2:
         category_filter = st.selectbox(
-            "Filter by Category",
-            options=["All"] + stats['categories']
+            "Category",
+            options=["All"] + [c.capitalize() for c in stats['categories']]
         )
     
     with col3:
         view_mode = st.selectbox(
-            "View Mode",
-            options=["All Products", "Price Drops Only", "Trending Products"]
+            "View",
+            options=["All Products", "Price Drops", "Trending"]
         )
     
-    # Get products based on filters
-    if view_mode == "Price Drops Only":
+    # Get filtered products
+    if view_mode == "Price Drops":
         products = db_manager.get_price_drops(min_percent=5.0)
-    elif view_mode == "Trending Products":
-        products = db_manager.get_trending_products(limit=20)
+    elif view_mode == "Trending":
+        products = db_manager.get_trending_products(limit=50)
     elif platform_filter == "All":
         products = db_manager.get_all_products(limit=100)
     else:
-        products = db_manager.get_products_by_platform(platform_filter)
+        products = db_manager.get_products_by_platform(platform_filter.lower())
     
-    # Apply category filter
+    # Apply filters
     if category_filter != "All":
-        products = [p for p in products if p.get('category') == category_filter]
+        products = [p for p in products if p.get('category', '').lower() == category_filter.lower()]
     
-    st.subheader(f"Found {len(products)} Products")
+    st.subheader(f"Results: {len(products)} products")
     
     if products:
-        # Convert to DataFrame
+        # Create display dataframe
         df_data = []
         for p in products:
             df_data.append({
-                'Title': p.get('title', 'Unknown')[:50] + '...',
+                'Product': p.get('title', 'Unknown')[:60] + '...',
                 'Platform': p.get('platform', 'N/A').upper(),
-                'Current Price': f"₹{p.get('current_price', 0):,.0f}" if p.get('current_price') else "N/A",
-                'Rating': f"{p.get('current_rating', 0):.1f}⭐" if p.get('current_rating') else "N/A",
-                'Price Trend': p.get('price_trend', 'N/A'),
-                'Price Change': f"{p.get('price_change_percent', 0):.1f}%" if p.get('price_change_percent') else "0%",
-                'Times Scraped': p.get('times_scraped', 0),
-                'Last Seen': p.get('last_seen', 'N/A')
+                'Price': f"₹{p.get('current_price', 0):,.0f}" if p.get('current_price') else "N/A",
+                'Rating': f"{p.get('current_rating', 0):.1f}" if p.get('current_rating') else "N/A",
+                'Trend': p.get('price_trend', 'stable').capitalize(),
+                'Change': f"{p.get('price_change_percent', 0):.1f}%" if p.get('price_change_percent') else "0%",
+                'Scraped': p.get('times_scraped', 0)
             })
         
         df = pd.DataFrame(df_data)
+        st.dataframe(df, use_container_width=True, hide_index=True)
         
-        # Color code price trends
-        def color_trend(val):
-            if 'down' in str(val).lower():
-                return 'background-color: #d4edda'  # Green
-            elif 'up' in str(val).lower():
-                return 'background-color: #f8d7da'  # Red
-            return ''
+        # Detailed view
+        st.divider()
+        st.subheader("Product Details")
         
-        styled_df = df.style.applymap(color_trend, subset=['Price Trend'])
-        st.dataframe(styled_df, use_container_width=True)
+        selected_idx = st.selectbox(
+            "Select product for details",
+            options=range(len(products)),
+            format_func=lambda x: products[x].get('title', 'Unknown')[:60] + '...'
+        )
         
-        # Show detailed view for selected product
-        st.markdown("---")
-        st.subheader("🔍 Product Details")
-        
-        product_titles = [p.get('title', 'Unknown')[:50] for p in products[:20]]
-        selected_title = st.selectbox("Select a product to view details:", product_titles)
-        
-        if selected_title:
-            selected_product = next(p for p in products if p.get('title', '')[:50] == selected_title)
+        if selected_idx is not None:
+            product = products[selected_idx]
             
             col1, col2 = st.columns(2)
             
             with col1:
-                st.write("**Product Information**")
-                st.write(f"**Title:** {selected_product.get('title', 'N/A')}")
-                st.write(f"**Platform:** {selected_product.get('platform', 'N/A').upper()}")
-                st.write(f"**Product ID:** {selected_product.get('product_id', 'N/A')}")
-                st.write(f"**Category:** {selected_product.get('category', 'N/A')}")
-                st.write(f"**Current Price:** ₹{selected_product.get('current_price', 0):,.0f}")
-                st.write(f"**Rating:** {selected_product.get('current_rating', 0):.1f}⭐")
-                
-            with col2:
-                st.write("**Tracking Information**")
-                st.write(f"**Unique ID:** {selected_product.get('unique_id', 'N/A')}")
-                st.write(f"**First Seen:** {selected_product.get('first_seen', 'N/A')}")
-                st.write(f"**Last Seen:** {selected_product.get('last_seen', 'N/A')}")
-                st.write(f"**Times Scraped:** {selected_product.get('times_scraped', 0)}")
-                st.write(f"**Price Trend:** {selected_product.get('price_trend', 'N/A')}")
-                st.write(f"**Price Change:** {selected_product.get('price_change_percent', 0):.1f}%")
+                st.markdown("**Product Information**")
+                st.write(f"**Title:** {product.get('title')}")
+                st.write(f"**Platform:** {product.get('platform', 'N/A').upper()}")
+                st.write(f"**Category:** {product.get('category', 'N/A').capitalize()}")
+                st.write(f"**Product ID:** {product.get('product_id')}")
+                st.write(f"**Price:** ₹{product.get('current_price', 0):,.0f}")
+                st.write(f"**Rating:** {product.get('current_rating', 'N/A')}")
             
-            # Price History Chart
-            if selected_product.get('price_history') and len(selected_product['price_history']) > 1:
-                st.markdown("---")
-                st.write("**📈 Price History**")
+            with col2:
+                st.markdown("**Tracking Data**")
+                st.write(f"**First Seen:** {product.get('first_seen')}")
+                st.write(f"**Last Updated:** {product.get('last_seen')}")
+                st.write(f"**Times Scraped:** {product.get('times_scraped', 0)}")
+                st.write(f"**Price Trend:** {product.get('price_trend', 'N/A').capitalize()}")
+                st.write(f"**Price Change:** {product.get('price_change_percent', 0):.1f}%")
+            
+            # Price history chart
+            if product.get('price_history') and len(product['price_history']) > 1:
+                st.divider()
+                st.markdown("**Price History**")
                 
-                price_history = selected_product['price_history']
-                history_df = pd.DataFrame(price_history)
+                history_df = pd.DataFrame(product['price_history'])
                 history_df['timestamp'] = pd.to_datetime(history_df['timestamp'])
                 history_df = history_df.sort_values('timestamp')
                 
-                st.line_chart(history_df.set_index('timestamp')['price'])
-                
-                # Show price changes
-                st.write("**Price Changes:**")
-                for i, entry in enumerate(price_history):
-                    st.write(f"  {i+1}. {entry['timestamp']}: ₹{entry['price']:,.0f}")
-            
-            # Product URL
-            if selected_product.get('url'):
-                st.markdown(f"[🔗 View on {selected_product.get('platform', 'platform').upper()}]({selected_product['url']})")
-        
+                st.line_chart(history_df.set_index('timestamp')['price'], use_container_width=True)
     else:
-        st.info("No products found. Go scrape some data first!")
+        st.info("No products found matching the selected filters.")
 
-
-
-# ==================== PRICE TRACKING ====================
-elif action == "📉 Price Tracking":
-    st.header("📉 Price Tracking & Alerts")
+elif page == "Price Analytics":
+    st.header("Price Analytics")
+    st.markdown("Track price changes and identify opportunities")
     
-    tab1, tab2, tab3 = st.tabs(["💰 Price Drops", "📈 Price Increases", "🔔 Alerts"])
+    tab1, tab2, tab3 = st.tabs(["Price Drops", "Price Increases", "Price Distribution"])
     
     with tab1:
-        st.subheader("💰 Products with Price Drops")
+        st.subheader("Products with Price Reductions")
         
-        min_drop = st.slider("Minimum price drop (%)", 0, 50, 10)
+        min_drop = st.slider("Minimum price drop percentage", 0, 50, 10)
         price_drops = db_manager.get_price_drops(min_percent=min_drop)
         
         if price_drops:
-            st.metric("Products Found", len(price_drops))
+            st.metric("Opportunities Found", len(price_drops))
             
-            for product in price_drops[:10]:
-                with st.expander(f"💵 {product['title'][:60]}... ({product['price_change_percent']:.1f}% off)"):
+            for product in price_drops[:20]:
+                with st.expander(f"{product['title'][:70]}... ({product['price_change_percent']:.1f}% off)"):
                     col1, col2 = st.columns(2)
                     
                     with col1:
                         st.write(f"**Platform:** {product['platform'].upper()}")
                         st.write(f"**Current Price:** ₹{product['current_price']:,.0f}")
-                        st.write(f"**Lowest Price:** ₹{product['lowest_price']:,.0f}")
-                        st.write(f"**Highest Price:** ₹{product['highest_price']:,.0f}")
+                        st.write(f"**Previous Price:** ₹{product['highest_price']:,.0f}")
                     
                     with col2:
-                        st.write(f"**Price Drop:** {product['price_change_percent']:.1f}%")
                         savings = product['highest_price'] - product['current_price']
-                        st.write(f"**You Save:** ₹{savings:,.0f}")
-                        st.write(f"**Rating:** {product.get('current_rating', 'N/A')}⭐")
+                        st.write(f"**Discount:** {product['price_change_percent']:.1f}%")
+                        st.write(f"**Savings:** ₹{savings:,.0f}")
+                        st.write(f"**Rating:** {product.get('current_rating', 'N/A')}")
                     
                     if product.get('url'):
-                        st.markdown(f"[🛒 Buy Now]({product['url']})")
+                        st.link_button("View Product", product['url'])
         else:
-            st.info(f"No products with >{min_drop}% price drop found.")
+            st.info(f"No products found with >{min_drop}% price drop.")
     
     with tab2:
-        st.subheader("📈 Products with Price Increases")
+        st.subheader("Products with Price Increases")
         
         products = db_manager.get_all_products(limit=100)
         price_increases = [p for p in products if p.get('price_trend') == 'up']
@@ -296,59 +405,82 @@ elif action == "📉 Price Tracking":
         if price_increases:
             st.metric("Products Found", len(price_increases))
             
-            for product in sorted(price_increases, key=lambda x: x.get('price_change_percent', 0), reverse=True)[:10]:
-                st.write(f"📊 **{product['title'][:60]}...** (+{product['price_change_percent']:.1f}%)")
-                st.write(f"   Current: ₹{product['current_price']:,.0f} | Was: ₹{product['lowest_price']:,.0f}")
+            df_data = []
+            for p in sorted(price_increases, key=lambda x: x.get('price_change_percent', 0), reverse=True)[:20]:
+                df_data.append({
+                    'Product': p['title'][:60] + '...',
+                    'Platform': p['platform'].upper(),
+                    'Current': f"₹{p['current_price']:,.0f}",
+                    'Previous': f"₹{p['lowest_price']:,.0f}",
+                    'Change': f"+{p['price_change_percent']:.1f}%"
+                })
+            
+            df = pd.DataFrame(df_data)
+            st.dataframe(df, use_container_width=True, hide_index=True)
         else:
             st.info("No price increases detected.")
     
     with tab3:
-        st.subheader("🔔 Price Alert Settings")
-        st.info("🚧 Coming Soon: Set up email alerts for price drops!")
+        st.subheader("Price Distribution Analysis")
         
-        st.write("**Feature Preview:**")
-        st.write("- Get notified when prices drop below a threshold")
-        st.write("- Daily/Weekly price summary emails")
-        st.write("- Custom alerts for specific products")
-
-
-# ==================== AI ANALYSIS ====================
-elif action == "🤖 AI Analysis":
-    st.header("🤖 AI-Powered Analysis")
-    
-    # Choose analysis type
-    analysis_type = st.radio(
-        "Select Analysis Type",
-        ["⚡ Quick Analysis (Single Agent)", "🧠 Deep Analysis (Multi-Agent Crew)"],
-        help="Quick: 5 seconds | Deep: 5-6 minutes with detailed insights"
-    )
-    
-    platform = st.selectbox(
-        "Select Platform",
-        options=["amazon", "flipkart"]
-    )
-    
-    if analysis_type == "⚡ Quick Analysis (Single Agent)":
-        # EXISTING SINGLE AGENT CODE
-        if st.button("🧠 Generate Quick Analysis", type="primary"):
-            products = db_manager.get_products_by_platform(platform)
+        all_products = db_manager.get_all_products(limit=100)
+        
+        if all_products:
+            prices = [p['current_price'] for p in all_products if p.get('current_price')]
             
-            if products:
-                with st.spinner("🤖 AI is analyzing your products..."):
+            if prices:
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.metric("Average Price", f"₹{sum(prices)/len(prices):,.0f}")
+                with col2:
+                    st.metric("Minimum Price", f"₹{min(prices):,.0f}")
+                with col3:
+                    st.metric("Maximum Price", f"₹{max(prices):,.0f}")
+                
+                # Price distribution chart
+                st.bar_chart(pd.Series(prices), use_container_width=True)
+
+elif page == "AI Insights":
+    st.header("AI-Powered Analysis")
+    st.markdown("Generate intelligent insights from collected data")
+    
+    # Analysis configuration
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        analysis_type = st.radio(
+            "Analysis Type",
+            ["Quick Analysis", "Deep Analysis (Multi-Agent)"],
+            help="Quick: 5-10 seconds | Deep: 5-6 minutes with detailed insights"
+        )
+    
+    with col2:
+        platform = st.selectbox(
+            "Select Platform",
+            options=["amazon", "flipkart"]
+        )
+    
+    if st.button("Generate Analysis", type="primary", use_container_width=True):
+        products = db_manager.get_products_by_platform(platform)
+        
+        if products:
+            if analysis_type == "Quick Analysis":
+                with st.spinner("Analyzing product data..."):
                     analysis = agent.analyze_products(products)
                     
                     if 'error' not in analysis:
-                        st.success("✅ Analysis Complete!")
+                        st.success("Analysis completed successfully")
                         
-                        # Display analysis (keep existing code)
+                        # Display metrics
                         col1, col2, col3 = st.columns(3)
                         
                         with col1:
-                            st.metric("Total Products", analysis.get('total_products', 'N/A'))
+                            st.metric("Products Analyzed", analysis.get('total_products', 0))
                         
                         with col2:
                             price_range = analysis.get('price_range', {})
-                            st.metric("Avg Price", f"₹{price_range.get('average', 0):,.0f}")
+                            st.metric("Average Price", f"₹{price_range.get('average', 0):,.0f}")
                         
                         with col3:
                             st.metric(
@@ -356,136 +488,115 @@ elif action == "🤖 AI Analysis":
                                 f"₹{price_range.get('min', 0):,.0f} - ₹{price_range.get('max', 0):,.0f}"
                             )
                         
-                        st.markdown("---")
+                        st.divider()
                         
                         # Top rated product
-                        st.subheader("🏆 Top Rated Product")
+                        st.subheader("Top Rated Product")
                         top_product = analysis.get('top_rated_product', {})
                         if top_product:
                             st.write(f"**{top_product.get('title', 'N/A')}**")
-                            st.write(f"Rating: {top_product.get('rating', 'N/A')} ⭐ | Price: ₹{top_product.get('price', 0):,.0f}")
+                            st.write(f"Rating: {top_product.get('rating', 'N/A')} | Price: ₹{top_product.get('price', 0):,.0f}")
                         
                         # Best value
-                        st.subheader("💎 Best Value Product")
+                        st.subheader("Best Value Product")
                         best_value = analysis.get('best_value_product', {})
                         if best_value:
                             st.write(f"**{best_value.get('title', 'N/A')}**")
                             st.write(best_value.get('reason', 'N/A'))
                         
                         # Insights
-                        st.subheader("💡 Price Insights")
+                        st.subheader("Key Insights")
                         insights = analysis.get('price_insights', [])
-                        for insight in insights:
-                            st.write(f"• {insight}")
+                        for i, insight in enumerate(insights, 1):
+                            st.write(f"{i}. {insight}")
                         
                         # Recommendations
-                        st.subheader("📋 Recommendations")
+                        st.subheader("Recommendations")
                         recommendations = analysis.get('recommendations', [])
-                        for rec in recommendations:
-                            st.write(f"✓ {rec}")
+                        for i, rec in enumerate(recommendations, 1):
+                            st.write(f"{i}. {rec}")
                         
-                        st.markdown("---")
-                        
-                        # PDF Download
-                        st.subheader("📥 Download Report")
+                        # Download PDF
+                        st.divider()
                         pdf_bytes = pdf_gen.generate_analysis_report(analysis, platform.upper())
                         st.download_button(
-                            label="📄 Download PDF Report",
+                            label="Download PDF Report",
                             data=pdf_bytes,
-                            file_name=f"quick_analysis_{platform}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                            mime="application/pdf",
-                            type="primary"
+                            file_name=f"analysis_{platform}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                            mime="application/pdf"
                         )
                         
                         # Save report
                         report_data = {
-                            'report_type': 'single_agent_analysis',
+                            'report_type': 'quick_analysis',
                             'platform': platform,
                             'analysis': analysis,
                             'products_analyzed': len(products)
                         }
-                        report_id = db_manager.save_report(report_data)
-                        st.success(f"💾 Report saved to database (ID: {report_id})")
+                        db_manager.save_report(report_data)
                     else:
-                        st.error(f"❌ Error: {analysis['error']}")
-            else:
-                st.warning("⚠️ No products found for this platform. Scrape some data first!")
-    
-    else:  # Deep Analysis with CrewAI
-        # NEW CREWAI INTEGRATION
-        if st.button("🧠 Generate Deep Analysis (Multi-Agent)", type="primary"):
-            products = db_manager.get_products_by_platform(platform)
+                        st.error(f"Analysis failed: {analysis['error']}")
             
-            if products:
-                st.info("⏱️ This will take 5-6 minutes. CrewAI agents are working sequentially to avoid rate limits.")
+            else:  # Deep Analysis
+                st.info("Deep analysis will take 5-6 minutes to complete.")
                 
-                # Progress tracking
-                progress_bar = st.progress(0)
-                status_text = st.empty()
-                
-                # Import crew manager
                 from src.agents.crew_manager import crew_manager
                 
-                status_text.text("🚀 Starting multi-agent analysis...")
-                progress_bar.progress(10)
-                
-                # Run CrewAI analysis
-                with st.spinner("🤖 5 AI Agents are collaborating..."):
+                with st.spinner("Multi-agent analysis in progress..."):
                     result = crew_manager.analyze_products(products)
                 
-                progress_bar.progress(100)
-                status_text.text("✅ Analysis complete!")
-                
                 if 'error' not in result:
-                    st.success("✅ Deep Analysis Complete!")
+                    st.success("Deep analysis completed")
                     
-                    # Show final report
-                    st.subheader("📊 Executive Report")
+                    st.subheader("Executive Report")
                     st.write(result.get('final_report', 'No report generated'))
                     
-                    # Show detailed results from each agent
-                    st.markdown("---")
-                    st.subheader("🔍 Detailed Agent Outputs")
+                    st.divider()
+                    st.subheader("Agent Outputs")
                     
                     for agent_result in result.get('detailed_results', []):
-                        with st.expander(f"🤖 {agent_result['agent']}"):
+                        with st.expander(f"{agent_result['agent']}"):
                             st.write(agent_result['output'])
                     
-                    st.markdown("---")
-                    st.metric("Tasks Completed", result.get('tasks_completed', 0))
-                    
-                    # Save CrewAI report
+                    # Save report
                     report_data = {
-                        'report_type': 'crew_ai_analysis',
+                        'report_type': 'deep_analysis',
                         'platform': platform,
                         'analysis': result,
                         'products_analyzed': len(products)
                     }
-                    report_id = db_manager.save_report(report_data)
-                    st.success(f"💾 Report saved to database (ID: {report_id})")
-                    
+                    db_manager.save_report(report_data)
                 else:
-                    st.error(f"❌ Error: {result['error']}")
-                    st.info("💡 Tip: If you hit rate limits, wait a few minutes and try again.")
-            else:
-                st.warning("⚠️ No products found for this platform. Scrape some data first!")
+                    st.error(f"Analysis failed: {result['error']}")
+        else:
+            st.warning("No products found for this platform. Please collect data first.")
 
-# ==================== REPORTS ====================
-elif action == "📈 Reports":
-    st.header("📈 Historical Reports")
+elif page == "Reports":
+    st.header("Analysis Reports")
+    st.markdown("View and manage generated reports")
     
     reports = list(db_manager.reports.find().sort('generated_at', -1))
     
     if reports:
         st.metric("Total Reports", len(reports))
         
-        for i, report in enumerate(reports[:10]):
-            report_date = report.get('generated_at', 'N/A')
-            with st.expander(f"Report {i+1} - {report.get('report_type', 'Unknown')} ({report_date})"):
+        for i, report in enumerate(reports[:20]):
+            report_type = report.get('report_type', 'Unknown').replace('_', ' ').title()
+            platform = report.get('platform', 'N/A').upper()
+            date = report.get('generated_at', 'N/A')
+            
+            with st.expander(f"Report #{i+1}: {report_type} - {platform} ({date})"):
                 st.json(report.get('analysis', {}))
     else:
-        st.info("No reports yet. Run an AI analysis to generate your first report!")
+        st.info("No reports generated yet. Run AI analysis to create reports.")
 
 # Footer
-st.markdown("---")
-st.markdown("**Built with Streamlit, Selenium, MongoDB, and Gemini AI** | 🚀 Retail Intelligence System")
+st.divider()
+st.markdown(
+    """
+    <div style='text-align: center; color: #6b7280; font-size: 0.875rem;'>
+        Retail Intelligence Platform | Powered by AI & Cloud Technologies
+    </div>
+    """,
+    unsafe_allow_html=True
+)
