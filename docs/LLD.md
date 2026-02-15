@@ -64,35 +64,35 @@ Our platform addresses these challenges by:
 │                      USER INTERFACE LAYER                       │
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │         Streamlit Dashboard (Professional UI)             │  │
-│  │  - Data Collection  - Product Explorer  - Analytics      │  │
-│  │  - AI Insights     - Reports            - Visualization  │  │
+│  │  - Data Collection  - Product Explorer  - Analytics       │  │
+│  │  - AI Insights     - Reports            - Visualization   │  │
 │  └───────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
 │                    APPLICATION LAYER                            │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
-│  │   Scrapers   │  │  AI Agents   │  │  Report Generator   │  │
-│  │  - Amazon    │  │  - Gemini    │  │  - PDF Creation     │  │
-│  │  - Flipkart  │  │  - CrewAI    │  │  - Data Export      │  │
-│  └──────────────┘  └──────────────┘  └──────────────────────┘  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
+│  │   Scrapers   │  │  AI Agents   │  │  Report Generator    │   │
+│  │  - Amazon    │  │  - Gemini    │  │  - PDF Creation      │   │
+│  │  - Flipkart  │  │  - CrewAI    │  │  - Data Export       │   │
+│  └──────────────┘  └──────────────┘  └──────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
 │                      DATA LAYER                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │              Database Manager (MongoDB)                   │  │
-│  │  - Product Storage    - Price History                    │  │
-│  │  - Report Archive     - Analytics Metrics                │  │
-│  └──────────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │              Database Manager (MongoDB)                  │   │
+│  │  - Product Storage    - Price History                    │   │
+│  │  - Report Archive     - Analytics Metrics                │   │
+│  └──────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
 │                   EXTERNAL SERVICES                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
-│  │   Amazon     │  │  Flipkart    │  │  MongoDB Atlas      │  │
-│  │   India      │  │   India      │  │  (Cloud Storage)    │  │
-│  └──────────────┘  └──────────────┘  └──────────────────────┘  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
+│  │   Amazon     │  │  Flipkart    │  │  MongoDB Atlas       │   │
+│  │   India      │  │   India      │  │  (Cloud Storage)     │   │
+│  └──────────────┘  └──────────────┘  └──────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -310,22 +310,22 @@ Data Scout → Pricing Strategist → Risk Assessor
 
 ### 4.2 Multi-Agent Architecture (CrewAI)
 ```
-┌──────────────────────────────────────────────────────────┐
-│              RetailIntelligenceCrew                      │
-├──────────────────────────────────────────────────────────┤
-│                                                          │
+┌───────────────────────────────────────────────────────┐
+│              RetailIntelligenceCrew                   │
+├───────────────────────────────────────────────────────┤
+│                                                       │
 │   ┌────────────┐   ┌────────────┐   ┌────────────┐    │
 │   │Data Scout  │──>│  Pricing   │──>│   Risk     │    │
 │   │   Agent    │   │ Strategist │   │  Assessor  │    │
 │   └────────────┘   └────────────┘   └────────────┘    │
-│         │                                    │          │
-│         v                                    v          │
+│         │                                    │        │
+│         v                                    v        │
 │   ┌────────────┐                    ┌────────────┐    │
 │   │  Demand    │<───────────────────│  Report    │    │
 │   │ Forecaster │                    │  Writer    │    │
 │   └────────────┘                    └────────────┘    │
-│                                                          │
-└──────────────────────────────────────────────────────────┘
+│                                                       │
+└───────────────────────────────────────────────────────┘
 ```
 
 **Agent Specialization**:
@@ -402,13 +402,13 @@ sequenceDiagram
 ┌─────────────────────────────────────────────────────────┐
 │  Day 1: First Scrape                                    │
 │                                                         │
-│  Scraper finds: Sony Headphones - ₹15,999              │
+│  Scraper finds: Sony Headphones - ₹15,999               │
 │       ↓                                                 │
 │  Database: INSERT                                       │
 │    {                                                    │
-│      unique_id: "amazon_B08N5W...",                    │
-│      current_price: 15999,                             │
-│      price_history: [{price: 15999, timestamp: T1}],   │
+│      unique_id: "amazon_B08N5W...",                     │
+│      current_price: 15999,                              │
+│      price_history: [{price: 15999, timestamp: T1}],    │
 │      times_scraped: 1                                   │
 │    }                                                    │
 └─────────────────────────────────────────────────────────┘
@@ -416,17 +416,17 @@ sequenceDiagram
 ┌─────────────────────────────────────────────────────────┐
 │  Day 3: Second Scrape                                   │
 │                                                         │
-│  Scraper finds: Sony Headphones - ₹14,999              │
+│  Scraper finds: Sony Headphones - ₹14,999               │
 │       ↓                                                 │
 │  Database: UPDATE (detected by unique_id)               │
 │    {                                                    │
-│      current_price: 14999,                             │
+│      current_price: 14999,                              │
 │      price_history: [                                   │
-│        {price: 15999, timestamp: T1},                  │
-│        {price: 14999, timestamp: T3}                   │
+│        {price: 15999, timestamp: T1},                   │
+│        {price: 14999, timestamp: T3}                    │
 │      ],                                                 │
-│      price_trend: "down",                              │
-│      price_change_percent: -6.25,                      │
+│      price_trend: "down",                               │
+│      price_change_percent: -6.25,                       │
 │      times_scraped: 2                                   │
 │    }                                                    │
 └─────────────────────────────────────────────────────────┘
