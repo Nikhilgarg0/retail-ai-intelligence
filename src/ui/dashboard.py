@@ -302,128 +302,378 @@ elif page == "Data Collection":
             st.warning("Please enter a search query")
 
 elif page == "Product Explorer":
-    st.header("Product Explorer")
-    st.markdown("Browse and analyze collected product data")
-
-    # Filters
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        platform_filter = st.selectbox(
-            "Platform", options=["All"] + [p.upper() for p in stats["platforms"]]
-        )
-
-    with col2:
-        category_filter = st.selectbox(
-            "Category", options=["All"] + [c.capitalize() for c in stats["categories"]]
-        )
-
-    with col3:
-        view_mode = st.selectbox(
-            "View", options=["All Products", "Price Drops", "Trending"]
-        )
-
-    # Get filtered products
-    if view_mode == "Price Drops":
-        products = db_manager.get_price_drops(min_percent=5.0)
-    elif view_mode == "Trending":
-        products = db_manager.get_trending_products(limit=50)
-    elif platform_filter == "All":
-        products = db_manager.get_all_products(limit=100)
-    else:
-        products = db_manager.get_products_by_platform(platform_filter.lower())
-
-    # Apply filters
-    if category_filter != "All":
-        products = [
-            p
-            for p in products
-            if p.get("category", "").lower() == category_filter.lower()
-        ]
-
-    st.subheader(f"Results: {len(products)} products")
-
-    if products:
-        # Create display dataframe
-        df_data = []
-        for p in products:
-            df_data.append(
-                {
-                    "Product": p.get("title", "Unknown")[:60] + "...",
-                    "Platform": p.get("platform", "N/A").upper(),
-                    "Price": (
-                        f"₹{p.get('current_price', 0):,.0f}"
-                        if p.get("current_price")
-                        else "N/A"
-                    ),
-                    "Rating": (
-                        f"{p.get('current_rating', 0):.1f}"
-                        if p.get("current_rating")
-                        else "N/A"
-                    ),
-                    "Trend": p.get("price_trend", "stable").capitalize(),
-                    "Change": (
-                        f"{p.get('price_change_percent', 0):.1f}%"
-                        if p.get("price_change_percent")
-                        else "0%"
-                    ),
-                    "Scraped": p.get("times_scraped", 0),
-                }
+    st.header("Product Explorer & Comparison")
+    st.markdown("Search, browse and compare products across platforms")
+    
+    # Create tabs for different views
+    tab1, tab2, tab3 = st.tabs(["🔍 Multi-Platform Search", "📊 Browse Database", "⚖️ Compare Products"])
+    
+    # ========================================
+    # TAB 1: MULTI-PLATFORM SEARCH
+    # ========================================
+    with tab1:
+        st.subheader("Search Products Across Platforms")
+        st.markdown("Search for products on Amazon and Flipkart simultaneously")
+        
+        col1, col2, col3 = st.columns([3, 1, 1])
+        
+        with col1:
+            search_query = st.text_input(
+                "Search Query",
+                placeholder="e.g., wireless headphones, laptop, smartphone",
+                key="multi_search_query"
             )
-
-        df = pd.DataFrame(df_data)
-        st.dataframe(df, use_container_width=True, hide_index=True)
-
-        # Detailed view
-        st.divider()
-        st.subheader("Product Details")
-
-        selected_idx = st.selectbox(
-            "Select product for details",
-            options=range(len(products)),
-            format_func=lambda x: products[x].get("title", "Unknown")[:60] + "...",
-        )
-
-        if selected_idx is not None:
-            product = products[selected_idx]
-
+        
+        with col2:
+            max_results = st.number_input(
+                "Results per Platform",
+                min_value=1,
+                max_value=10,
+                value=5,
+                key="multi_search_max"
+            )
+        
+        with col3:
+            category = st.selectbox(
+                "Category",
+                options=["Electronics", "Clothing", "Cosmetics", "Groceries", "Home & Kitchen"],
+                key="multi_search_category"
+            )
+        
+        # Platform selection
+        col1, col2 = st.columns(2)
+        with col1:
+            search_amazon = st.checkbox("Search Amazon", value=True)
+        with col2:
+            search_flipkart = st.checkbox("Search Flipkart", value=True)
+        
+        if st.button("🔍 Search All Platforms", type="primary", use_container_width=True):
+            if not search_query:
+                st.warning("Please enter a search query")
+            elif not (search_amazon or search_flipkart):
+                st.warning("Please select at least one platform")
+            else:
+                results = {}
+                total_found = 0
+                
+                # Progress tracking
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                # Search Amazon
+                if search_amazon:
+                    status_text.text("🔍 Searching Amazon...")
+                    progress_bar.progress(25)
+                    
+                    try:
+                        from src.scrapers.amazon_scraper import AmazonScraper
+                        amazon_scraper = AmazonScraper()
+                        amazon_products = amazon_scraper.search_products(search_query, max_results)
+                        
+                        if amazon_products:
+                            for product in amazon_products:
+                                product['category'] = category.lower()
+                            results['amazon'] = amazon_products
+                            total_found += len(amazon_products)
+                            
+                            # Save to database
+                            db_manager.save_products_bulk(amazon_products)
+                    except Exception as e:
+                        st.error(f"Amazon search failed: {str(e)}")
+                    
+                    progress_bar.progress(50)
+                
+                # Search Flipkart
+                if search_flipkart:
+                    status_text.text("🔍 Searching Flipkart...")
+                    progress_bar.progress(75)
+                    
+                    try:
+                        from src.scrapers.flipkart_scraper import FlipkartScraper
+                        flipkart_scraper = FlipkartScraper()
+                        flipkart_products = flipkart_scraper.search_products(search_query, max_results)
+                        
+                        if flipkart_products:
+                            for product in flipkart_products:
+                                product['category'] = category.lower()
+                            results['flipkart'] = flipkart_products
+                            total_found += len(flipkart_products)
+                            
+                            # Save to database
+                            db_manager.save_products_bulk(flipkart_products)
+                    except Exception as e:
+                        st.error(f"Flipkart search failed: {str(e)}")
+                
+                progress_bar.progress(100)
+                status_text.empty()
+                progress_bar.empty()
+                
+                if total_found > 0:
+                    st.success(f"✅ Found {total_found} products across {len(results)} platform(s)")
+                    
+                    # Display results by platform
+                    for platform_name, products in results.items():
+                        st.subheader(f"{platform_name.upper()} Results ({len(products)} products)")
+                        
+                        # Create comparison table
+                        comparison_data = []
+                        for p in products:
+                            comparison_data.append({
+                                'Title': p.get('title', 'Unknown')[:60] + '...',
+                                'Price': f"₹{p.get('price'):,.0f}" if p.get('price') else "N/A",
+                                'Rating': f"{p.get('rating'):.1f}⭐" if p.get('rating') else "N/A",
+                                'Platform': platform_name.upper()
+                            })
+                        
+                        df = pd.DataFrame(comparison_data)
+                        st.dataframe(df, use_container_width=True, hide_index=True)
+                    
+                    # Price comparison summary
+                    st.divider()
+                    st.subheader("📊 Price Comparison Summary")
+                    
+                    col1, col2, col3 = st.columns(3)
+                    
+                    all_prices = []
+                    for products in results.values():
+                        all_prices.extend([p['price'] for p in products if p.get('price')])
+                    
+                    if all_prices:
+                        with col1:
+                            st.metric("Lowest Price Found", f"₹{min(all_prices):,.0f}")
+                        with col2:
+                            st.metric("Highest Price Found", f"₹{max(all_prices):,.0f}")
+                        with col3:
+                            st.metric("Average Price", f"₹{sum(all_prices)/len(all_prices):,.0f}")
+                        
+                        # Platform price comparison
+                        if len(results) > 1:
+                            st.write("**Platform Price Comparison:**")
+                            for platform_name, products in results.items():
+                                platform_prices = [p['price'] for p in products if p.get('price')]
+                                if platform_prices:
+                                    avg_price = sum(platform_prices) / len(platform_prices)
+                                    st.write(f"- **{platform_name.upper()}:** Average ₹{avg_price:,.0f}")
+                else:
+                    st.error("No products found. Try different search terms.")
+    
+    # ========================================
+    # TAB 2: BROWSE DATABASE
+    # ========================================
+    with tab2:
+        st.subheader("Browse Collected Products")
+        
+        # Filters
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            platform_filter = st.selectbox(
+                "Platform",
+                options=["All"] + [p.upper() for p in stats['platforms']],
+                key="browse_platform"
+            )
+        
+        with col2:
+            category_filter = st.selectbox(
+                "Category",
+                options=["All"] + [c.capitalize() for c in stats['categories']],
+                key="browse_category"
+            )
+        
+        with col3:
+            view_mode = st.selectbox(
+                "View",
+                options=["All Products", "Price Drops", "Trending"],
+                key="browse_view"
+            )
+        
+        # Get filtered products
+        if view_mode == "Price Drops":
+            products = db_manager.get_price_drops(min_percent=5.0)
+        elif view_mode == "Trending":
+            products = db_manager.get_trending_products(limit=50)
+        elif platform_filter == "All":
+            products = db_manager.get_all_products(limit=100)
+        else:
+            products = db_manager.get_products_by_platform(platform_filter.lower())
+        
+        # Apply filters
+        if category_filter != "All":
+            products = [p for p in products if p.get('category', '').lower() == category_filter.lower()]
+        
+        st.subheader(f"Results: {len(products)} products")
+        
+        if products:
+            # Create display dataframe
+            df_data = []
+            for p in products:
+                df_data.append({
+                    'Product': p.get('title', 'Unknown')[:60] + '...',
+                    'Platform': p.get('platform', 'N/A').upper(),
+                    'Price': f"₹{p.get('current_price', 0):,.0f}" if p.get('current_price') else "N/A",
+                    'Rating': f"{p.get('current_rating', 0):.1f}" if p.get('current_rating') else "N/A",
+                    'Trend': p.get('price_trend', 'stable').capitalize(),
+                    'Change': f"{p.get('price_change_percent', 0):.1f}%" if p.get('price_change_percent') else "0%",
+                    'Scraped': p.get('times_scraped', 0)
+                })
+            
+            df = pd.DataFrame(df_data)
+            st.dataframe(df, use_container_width=True, hide_index=True)
+            
+            # Detailed view
+            st.divider()
+            st.subheader("Product Details")
+            
+            selected_idx = st.selectbox(
+                "Select product for details",
+                options=range(len(products)),
+                format_func=lambda x: products[x].get('title', 'Unknown')[:60] + '...',
+                key="browse_detail_select"
+            )
+            
+            if selected_idx is not None:
+                product = products[selected_idx]
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("**Product Information**")
+                    st.write(f"**Title:** {product.get('title')}")
+                    st.write(f"**Platform:** {product.get('platform', 'N/A').upper()}")
+                    st.write(f"**Category:** {product.get('category', 'N/A').capitalize()}")
+                    st.write(f"**Product ID:** {product.get('product_id')}")
+                    st.write(f"**Price:** ₹{product.get('current_price', 0):,.0f}")
+                    st.write(f"**Rating:** {product.get('current_rating', 'N/A')}")
+                
+                with col2:
+                    st.markdown("**Tracking Data**")
+                    st.write(f"**First Seen:** {product.get('first_seen')}")
+                    st.write(f"**Last Updated:** {product.get('last_seen')}")
+                    st.write(f"**Times Scraped:** {product.get('times_scraped', 0)}")
+                    st.write(f"**Price Trend:** {product.get('price_trend', 'N/A').capitalize()}")
+                    st.write(f"**Price Change:** {product.get('price_change_percent', 0):.1f}%")
+                
+                # Price history chart
+                if product.get('price_history') and len(product['price_history']) > 1:
+                    st.divider()
+                    st.markdown("**📈 Price History**")
+                    
+                    history_df = pd.DataFrame(product['price_history'])
+                    history_df['timestamp'] = pd.to_datetime(history_df['timestamp'])
+                    history_df = history_df.sort_values('timestamp')
+                    
+                    st.line_chart(history_df.set_index('timestamp')['price'], use_container_width=True)
+        else:
+            st.info("No products found matching the selected filters.")
+    
+    # ========================================
+    # TAB 3: COMPARE PRODUCTS
+    # ========================================
+    with tab3:
+        st.subheader("Compare Similar Products Across Platforms")
+        st.markdown("Find and compare similar products from different platforms")
+        
+        # Get all products
+        all_products = db_manager.get_all_products(limit=200)
+        
+        if len(all_products) > 1:
+            # Product selection
+            st.write("**Select products to compare:**")
+            
             col1, col2 = st.columns(2)
-
+            
             with col1:
-                st.markdown("**Product Information**")
-                st.write(f"**Title:** {product.get('title')}")
-                st.write(f"**Platform:** {product.get('platform', 'N/A').upper()}")
-                st.write(f"**Category:** {product.get('category', 'N/A').capitalize()}")
-                st.write(f"**Product ID:** {product.get('product_id')}")
-                st.write(f"**Price:** ₹{product.get('current_price', 0):,.0f}")
-                st.write(f"**Rating:** {product.get('current_rating', 'N/A')}")
-
+                product1_idx = st.selectbox(
+                    "Product 1",
+                    options=range(len(all_products)),
+                    format_func=lambda x: f"{all_products[x].get('platform', 'N/A').upper()} - {all_products[x].get('title', 'Unknown')[:50]}...",
+                    key="compare_product1"
+                )
+            
             with col2:
-                st.markdown("**Tracking Data**")
-                st.write(f"**First Seen:** {product.get('first_seen')}")
-                st.write(f"**Last Updated:** {product.get('last_seen')}")
-                st.write(f"**Times Scraped:** {product.get('times_scraped', 0)}")
-                st.write(
-                    f"**Price Trend:** {product.get('price_trend', 'N/A').capitalize()}"
+                product2_idx = st.selectbox(
+                    "Product 2",
+                    options=range(len(all_products)),
+                    format_func=lambda x: f"{all_products[x].get('platform', 'N/A').upper()} - {all_products[x].get('title', 'Unknown')[:50]}...",
+                    key="compare_product2"
                 )
-                st.write(
-                    f"**Price Change:** {product.get('price_change_percent', 0):.1f}%"
-                )
-
-            # Price history chart
-            if product.get("price_history") and len(product["price_history"]) > 1:
+            
+            if st.button("⚖️ Compare Products", use_container_width=True):
+                product1 = all_products[product1_idx]
+                product2 = all_products[product2_idx]
+                
                 st.divider()
-                st.markdown("**Price History**")
+                
+                # Comparison table
+                comparison = {
+                    'Attribute': ['Platform', 'Title', 'Current Price', 'Rating', 'Price Trend', 'Times Scraped', 'First Seen'],
+                    'Product 1': [
+                        product1.get('platform', 'N/A').upper(),
+                        product1.get('title', 'N/A')[:50] + '...',
+                        f"₹{product1.get('current_price', 0):,.0f}" if product1.get('current_price') else 'N/A',
+                        f"{product1.get('current_rating', 0):.1f}⭐" if product1.get('current_rating') else 'N/A',
+                        product1.get('price_trend', 'N/A').capitalize(),
+                        product1.get('times_scraped', 0),
+                        str(product1.get('first_seen', 'N/A'))[:10]
+                    ],
+                    'Product 2': [
+                        product2.get('platform', 'N/A').upper(),
+                        product2.get('title', 'N/A')[:50] + '...',
+                        f"₹{product2.get('current_price', 0):,.0f}" if product2.get('current_price') else 'N/A',
+                        f"{product2.get('current_rating', 0):.1f}⭐" if product2.get('current_rating') else 'N/A',
+                        product2.get('price_trend', 'N/A').capitalize(),
+                        product2.get('times_scraped', 0),
+                        str(product2.get('first_seen', 'N/A'))[:10]
+                    ]
+                }
+                
+                df_compare = pd.DataFrame(comparison)
+                st.dataframe(df_compare, use_container_width=True, hide_index=True)
+                
+                # Price comparison
+                st.divider()
+                st.subheader("💰 Price Analysis")
+                
+                price1 = product1.get('current_price')
+                price2 = product2.get('current_price')
+                
+                if price1 and price2:
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        cheaper = "Product 1" if price1 < price2 else "Product 2"
+                        st.metric("Cheaper Option", cheaper)
+                    
+                    with col2:
+                        diff = abs(price1 - price2)
+                        st.metric("Price Difference", f"₹{diff:,.0f}")
+                    
+                    with col3:
+                        percent_diff = (diff / max(price1, price2)) * 100
+                        st.metric("Percentage Difference", f"{percent_diff:.1f}%")
+                    
+                    # Recommendation
+                    st.info(f"💡 **Recommendation:** {cheaper} is ₹{diff:,.0f} cheaper ({percent_diff:.1f}% savings)")
+                
+                # Rating comparison
+                rating1 = product1.get('current_rating')
+                rating2 = product2.get('current_rating')
+                
+                if rating1 and rating2:
+                    st.divider()
+                    st.subheader("⭐ Rating Comparison")
+                    
+                    better_rated = "Product 1" if rating1 > rating2 else "Product 2" if rating2 > rating1 else "Equal"
+                    st.write(f"**Better Rated:** {better_rated}")
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("Product 1 Rating", f"{rating1:.1f}⭐")
+                    with col2:
+                        st.metric("Product 2 Rating", f"{rating2:.1f}⭐")
+        else:
+            st.info("Need at least 2 products in database to compare. Search and collect more products first.")
 
-                history_df = pd.DataFrame(product["price_history"])
-                history_df["timestamp"] = pd.to_datetime(history_df["timestamp"])
-                history_df = history_df.sort_values("timestamp")
-
-                st.line_chart(
-                    history_df.set_index("timestamp")["price"], use_container_width=True
-                )
-    else:
-        st.info("No products found matching the selected filters.")
 
 elif page == "Price Analytics":
     st.header("Price Analytics")
@@ -531,7 +781,7 @@ elif page == "AI Insights":
         st.session_state.analysis_platform = None
     
     # Analysis configuration
-    col1, col2 = st.columns([3, 1])
+    col1, col2 = st.columns(2)
     
     with col1:
         analysis_type = st.radio(
@@ -541,29 +791,80 @@ elif page == "AI Insights":
         )
     
     with col2:
+        st.write("")  # Spacing
+        st.write("")  # Spacing
+    
+    # Platform, Category, and Options
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
         platform = st.selectbox(
-            "Select Platform",
-            options=["amazon", "flipkart"]
+            "Platform",
+            options=["All Platforms", "Amazon", "Flipkart"],
+            help="Select platform to analyze"
         )
+    
+    with col2:
+        # Get available categories from database
+        available_categories = stats.get('categories', [])
+        category_options = ["All Categories"] + [cat.capitalize() for cat in available_categories]
+        
+        category = st.selectbox(
+            "Category",
+            options=category_options,
+            help="Select product category to analyze"
+        )
+    
+    with col3:
+        # Show product count for selected filters
+        if platform == "All Platforms":
+            if category == "All Categories":
+                count = db_manager.products.count_documents({})
+            else:
+                count = db_manager.products.count_documents({'category': category.lower()})
+        else:
+            if category == "All Categories":
+                count = db_manager.products.count_documents({'platform': platform.lower()})
+            else:
+                count = db_manager.products.count_documents({
+                    'platform': platform.lower(),
+                    'category': category.lower()
+                })
+        
+        st.metric("Products to Analyze", count)
     
     # Start New Analysis Button
     if st.button("🔄 Start New Analysis", type="primary", use_container_width=True):
-        products = db_manager.get_products_by_platform(platform)
+        # Build query based on filters
+        query = {}
+        
+        if platform != "All Platforms":
+            query['platform'] = platform.lower()
+        
+        if category != "All Categories":
+            query['category'] = category.lower()
+        
+        # Get filtered products
+        products = list(db_manager.products.find(query))
         
         if products:
+            # Store filter settings
+            st.session_state.analysis_platform = platform
+            st.session_state.analysis_category = category
+            
             if analysis_type == "Quick Analysis":
-                with st.spinner("Analyzing product data..."):
+                with st.spinner(f"Analyzing {len(products)} products..."):
                     analysis = agent.analyze_products(products)
                     
                     if 'error' not in analysis:
                         st.session_state.current_analysis = analysis
-                        st.session_state.analysis_platform = platform
                         st.session_state.analysis_type = 'quick'
                         
-                        # Save report
+                        # Save report with category info
                         report_data = {
                             'report_type': 'quick_analysis',
-                            'platform': platform,
+                            'platform': platform.lower() if platform != "All Platforms" else "all",
+                            'category': category.lower() if category != "All Categories" else "all",
                             'analysis': analysis,
                             'products_analyzed': len(products)
                         }
@@ -575,7 +876,7 @@ elif page == "AI Insights":
                         st.error(f"Analysis failed: {analysis['error']}")
             
             else:  # Deep Analysis
-                st.info("Deep analysis will take 5-6 minutes to complete.")
+                st.info(f"Deep analysis will take 5-6 minutes to analyze {len(products)} products.")
                 
                 from src.agents.crew_manager import crew_manager
                 
@@ -584,13 +885,13 @@ elif page == "AI Insights":
                 
                 if 'error' not in result:
                     st.session_state.current_analysis = result
-                    st.session_state.analysis_platform = platform
                     st.session_state.analysis_type = 'deep'
                     
-                    # Save report
+                    # Save report with category info
                     report_data = {
                         'report_type': 'deep_analysis',
-                        'platform': platform,
+                        'platform': platform.lower() if platform != "All Platforms" else "all",
+                        'category': category.lower() if category != "All Categories" else "all",
                         'analysis': result,
                         'products_analyzed': len(products)
                     }
@@ -601,12 +902,17 @@ elif page == "AI Insights":
                 else:
                     st.error(f"Analysis failed: {result['error']}")
         else:
-            st.warning("No products found for this platform. Please collect data first.")
+            st.warning(f"No products found for {platform} in {category} category. Please collect data first.")
     
     # Display current analysis if exists
     if st.session_state.current_analysis is not None:
         st.divider()
-        st.success("✅ Analysis completed successfully")
+        
+        # Show filter context
+        analysis_platform = st.session_state.get('analysis_platform', 'Unknown')
+        analysis_category = st.session_state.get('analysis_category', 'All Categories')
+        
+        st.success(f"✅ Analysis completed: {analysis_platform} | {analysis_category}")
         
         analysis = st.session_state.current_analysis
         analysis_type_label = st.session_state.get('analysis_type', 'quick')
@@ -629,6 +935,9 @@ elif page == "AI Insights":
                 )
             
             st.divider()
+            
+            # Analysis Context
+            st.info(f"📊 **Analysis Scope:** {analysis_platform} | Category: {analysis_category}")
             
             # Top rated product
             st.subheader("Top Rated Product")
@@ -660,20 +969,24 @@ elif page == "AI Insights":
             st.divider()
             st.subheader("Download Report")
             
+            # Generate PDF with context
             pdf_bytes = pdf_gen.generate_analysis_report(
                 analysis, 
-                st.session_state.analysis_platform.upper()
+                f"{analysis_platform} - {analysis_category}"
             )
             
             st.download_button(
                 label="📄 Download PDF Report",
                 data=pdf_bytes,
-                file_name=f"quick_analysis_{st.session_state.analysis_platform}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                file_name=f"analysis_{analysis_platform.lower().replace(' ', '_')}_{analysis_category.lower().replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
                 mime="application/pdf",
                 use_container_width=True
             )
         
         else:  # Deep Analysis
+            # Analysis Context
+            st.info(f"📊 **Analysis Scope:** {analysis_platform} | Category: {analysis_category}")
+            
             st.subheader("Executive Report")
             st.write(analysis.get('final_report', 'No report generated'))
             
@@ -686,6 +999,10 @@ elif page == "AI Insights":
             
             st.divider()
             st.metric("Tasks Completed", analysis.get('tasks_completed', 0))
+            
+            # Download option for deep analysis
+            st.divider()
+            st.info("💡 Deep analysis reports are saved to the database. View them in the Reports tab.")
 
 
 elif page == "Reports":
@@ -704,11 +1021,23 @@ elif page == "Reports":
         for i, report in enumerate(reports[:20]):
             report_type = report.get('report_type', 'Unknown').replace('_', ' ').title()
             platform = report.get('platform', 'N/A').upper()
+            category = report.get('category', 'all').capitalize()
             date = report.get('generated_at', 'N/A')
             products_analyzed = report.get('products_analyzed', 0)
             
+            # Create descriptive title
+            if platform == "ALL":
+                platform_text = "All Platforms"
+            else:
+                platform_text = platform
+            
+            if category == "All":
+                category_text = "All Categories"
+            else:
+                category_text = category
+            
             with st.expander(
-                f"📊 {report_type} - {platform} | {date} | {products_analyzed} products",
+                f"📊 {report_type} | {platform_text} | {category_text} | {products_analyzed} products | {date}",
                 expanded=(i == 0)  # Expand first report by default
             ):
                 col1, col2 = st.columns([3, 1])
@@ -716,7 +1045,8 @@ elif page == "Reports":
                 with col1:
                     st.write("**Report Details:**")
                     st.write(f"- **Type:** {report_type}")
-                    st.write(f"- **Platform:** {platform}")
+                    st.write(f"- **Platform:** {platform_text}")
+                    st.write(f"- **Category:** {category_text}")
                     st.write(f"- **Products Analyzed:** {products_analyzed}")
                     st.write(f"- **Generated At:** {date}")
                 
@@ -726,13 +1056,13 @@ elif page == "Reports":
                         try:
                             pdf_bytes = pdf_gen.generate_analysis_report(
                                 report['analysis'],
-                                platform
+                                f"{platform_text} - {category_text}"
                             )
                             
                             st.download_button(
                                 label="📥 Download PDF",
                                 data=pdf_bytes,
-                                file_name=f"{report_type.lower().replace(' ', '_')}_{platform}_{i}.pdf",
+                                file_name=f"{report_type.lower().replace(' ', '_')}_{platform}_{category}_{i}.pdf",
                                 mime="application/pdf",
                                 key=f"download_{report['_id']}",
                                 use_container_width=True
@@ -771,7 +1101,7 @@ elif page == "Reports":
                         st.write(f"- **Tasks Completed:** {analysis['tasks_completed']}")
     else:
         st.info("No AI analysis reports found. Generate reports from the AI Insights page.")
-
+        
 # Footer
 st.divider()
 st.markdown(
