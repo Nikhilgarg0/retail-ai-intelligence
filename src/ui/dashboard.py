@@ -519,162 +519,258 @@ elif page == "Price Analytics":
                 # Price distribution chart
                 st.bar_chart(pd.Series(prices), use_container_width=True)
 
+
 elif page == "AI Insights":
     st.header("AI-Powered Analysis")
     st.markdown("Generate intelligent insights from collected data")
-
+    
+    # Initialize session state for storing analysis results
+    if 'current_analysis' not in st.session_state:
+        st.session_state.current_analysis = None
+    if 'analysis_platform' not in st.session_state:
+        st.session_state.analysis_platform = None
+    
     # Analysis configuration
-    col1, col2 = st.columns(2)
-
+    col1, col2 = st.columns([3, 1])
+    
     with col1:
         analysis_type = st.radio(
             "Analysis Type",
             ["Quick Analysis", "Deep Analysis (Multi-Agent)"],
-            help="Quick: 5-10 seconds | Deep: 5-6 minutes with detailed insights",
+            help="Quick: 5-10 seconds | Deep: 5-6 minutes with detailed insights"
         )
-
+    
     with col2:
-        platform = st.selectbox("Select Platform", options=["amazon", "flipkart"])
-
-    if st.button("Generate Analysis", type="primary", use_container_width=True):
+        platform = st.selectbox(
+            "Select Platform",
+            options=["amazon", "flipkart"]
+        )
+    
+    # Start New Analysis Button
+    if st.button("🔄 Start New Analysis", type="primary", use_container_width=True):
         products = db_manager.get_products_by_platform(platform)
-
+        
         if products:
             if analysis_type == "Quick Analysis":
                 with st.spinner("Analyzing product data..."):
                     analysis = agent.analyze_products(products)
-
-                    if "error" not in analysis:
-                        st.success("Analysis completed successfully")
-
-                        # Display metrics
-                        col1, col2, col3 = st.columns(3)
-
-                        with col1:
-                            st.metric(
-                                "Products Analyzed", analysis.get("total_products", 0)
-                            )
-
-                        with col2:
-                            price_range = analysis.get("price_range", {})
-                            st.metric(
-                                "Average Price",
-                                f"₹{price_range.get('average', 0):,.0f}",
-                            )
-
-                        with col3:
-                            st.metric(
-                                "Price Range",
-                                f"₹{price_range.get('min', 0):,.0f} - ₹{price_range.get('max', 0):,.0f}",
-                            )
-
-                        st.divider()
-
-                        # Top rated product
-                        st.subheader("Top Rated Product")
-                        top_product = analysis.get("top_rated_product", {})
-                        if top_product:
-                            st.write(f"**{top_product.get('title', 'N/A')}**")
-                            st.write(
-                                f"Rating: {top_product.get('rating', 'N/A')} | Price: ₹{top_product.get('price', 0):,.0f}"
-                            )
-
-                        # Best value
-                        st.subheader("Best Value Product")
-                        best_value = analysis.get("best_value_product", {})
-                        if best_value:
-                            st.write(f"**{best_value.get('title', 'N/A')}**")
-                            st.write(best_value.get("reason", "N/A"))
-
-                        # Insights
-                        st.subheader("Key Insights")
-                        insights = analysis.get("price_insights", [])
-                        for i, insight in enumerate(insights, 1):
-                            st.write(f"{i}. {insight}")
-
-                        # Recommendations
-                        st.subheader("Recommendations")
-                        recommendations = analysis.get("recommendations", [])
-                        for i, rec in enumerate(recommendations, 1):
-                            st.write(f"{i}. {rec}")
-
-                        # Download PDF
-                        st.divider()
-                        pdf_bytes = pdf_gen.generate_analysis_report(
-                            analysis, platform.upper()
-                        )
-                        st.download_button(
-                            label="Download PDF Report",
-                            data=pdf_bytes,
-                            file_name=f"analysis_{platform}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                            mime="application/pdf",
-                        )
-
+                    
+                    if 'error' not in analysis:
+                        st.session_state.current_analysis = analysis
+                        st.session_state.analysis_platform = platform
+                        st.session_state.analysis_type = 'quick'
+                        
                         # Save report
                         report_data = {
-                            "report_type": "quick_analysis",
-                            "platform": platform,
-                            "analysis": analysis,
-                            "products_analyzed": len(products),
+                            'report_type': 'quick_analysis',
+                            'platform': platform,
+                            'analysis': analysis,
+                            'products_analyzed': len(products)
                         }
-                        db_manager.save_report(report_data)
+                        report_id = db_manager.save_report(report_data)
+                        st.session_state.last_report_id = str(report_id)
+                        
+                        st.rerun()
                     else:
                         st.error(f"Analysis failed: {analysis['error']}")
-
+            
             else:  # Deep Analysis
                 st.info("Deep analysis will take 5-6 minutes to complete.")
-
+                
                 from src.agents.crew_manager import crew_manager
-
+                
                 with st.spinner("Multi-agent analysis in progress..."):
                     result = crew_manager.analyze_products(products)
-
-                if "error" not in result:
-                    st.success("Deep analysis completed")
-
-                    st.subheader("Executive Report")
-                    st.write(result.get("final_report", "No report generated"))
-
-                    st.divider()
-                    st.subheader("Agent Outputs")
-
-                    for agent_result in result.get("detailed_results", []):
-                        with st.expander(f"{agent_result['agent']}"):
-                            st.write(agent_result["output"])
-
+                
+                if 'error' not in result:
+                    st.session_state.current_analysis = result
+                    st.session_state.analysis_platform = platform
+                    st.session_state.analysis_type = 'deep'
+                    
                     # Save report
                     report_data = {
-                        "report_type": "deep_analysis",
-                        "platform": platform,
-                        "analysis": result,
-                        "products_analyzed": len(products),
+                        'report_type': 'deep_analysis',
+                        'platform': platform,
+                        'analysis': result,
+                        'products_analyzed': len(products)
                     }
-                    db_manager.save_report(report_data)
+                    report_id = db_manager.save_report(report_data)
+                    st.session_state.last_report_id = str(report_id)
+                    
+                    st.rerun()
                 else:
                     st.error(f"Analysis failed: {result['error']}")
         else:
-            st.warning(
-                "No products found for this platform. Please collect data first."
+            st.warning("No products found for this platform. Please collect data first.")
+    
+    # Display current analysis if exists
+    if st.session_state.current_analysis is not None:
+        st.divider()
+        st.success("✅ Analysis completed successfully")
+        
+        analysis = st.session_state.current_analysis
+        analysis_type_label = st.session_state.get('analysis_type', 'quick')
+        
+        if analysis_type_label == 'quick':
+            # Display Quick Analysis
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric("Products Analyzed", analysis.get('total_products', 0))
+            
+            with col2:
+                price_range = analysis.get('price_range', {})
+                st.metric("Average Price", f"₹{price_range.get('average', 0):,.0f}")
+            
+            with col3:
+                st.metric(
+                    "Price Range",
+                    f"₹{price_range.get('min', 0):,.0f} - ₹{price_range.get('max', 0):,.0f}"
+                )
+            
+            st.divider()
+            
+            # Top rated product
+            st.subheader("Top Rated Product")
+            top_product = analysis.get('top_rated_product', {})
+            if top_product:
+                st.write(f"**{top_product.get('title', 'N/A')}**")
+                st.write(f"Rating: {top_product.get('rating', 'N/A')} | Price: ₹{top_product.get('price', 0):,.0f}")
+            
+            # Best value
+            st.subheader("Best Value Product")
+            best_value = analysis.get('best_value_product', {})
+            if best_value:
+                st.write(f"**{best_value.get('title', 'N/A')}**")
+                st.write(best_value.get('reason', 'N/A'))
+            
+            # Insights
+            st.subheader("Key Insights")
+            insights = analysis.get('price_insights', [])
+            for i, insight in enumerate(insights, 1):
+                st.write(f"{i}. {insight}")
+            
+            # Recommendations
+            st.subheader("Recommendations")
+            recommendations = analysis.get('recommendations', [])
+            for i, rec in enumerate(recommendations, 1):
+                st.write(f"{i}. {rec}")
+            
+            # Download PDF
+            st.divider()
+            st.subheader("Download Report")
+            
+            pdf_bytes = pdf_gen.generate_analysis_report(
+                analysis, 
+                st.session_state.analysis_platform.upper()
             )
+            
+            st.download_button(
+                label="📄 Download PDF Report",
+                data=pdf_bytes,
+                file_name=f"quick_analysis_{st.session_state.analysis_platform}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
+        
+        else:  # Deep Analysis
+            st.subheader("Executive Report")
+            st.write(analysis.get('final_report', 'No report generated'))
+            
+            st.divider()
+            st.subheader("Agent Outputs")
+            
+            for agent_result in analysis.get('detailed_results', []):
+                with st.expander(f"🤖 {agent_result['agent']}"):
+                    st.write(agent_result['output'])
+            
+            st.divider()
+            st.metric("Tasks Completed", analysis.get('tasks_completed', 0))
+
 
 elif page == "Reports":
     st.header("Analysis Reports")
-    st.markdown("View and manage generated reports")
-
-    reports = list(db_manager.reports.find().sort("generated_at", -1))
-
+    st.markdown("View and download AI-generated analysis reports")
+    
+    # Filter to only show AI analysis reports
+    reports = list(db_manager.reports.find({
+        'report_type': {'$in': ['quick_analysis', 'deep_analysis']}
+    }).sort('generated_at', -1))
+    
     if reports:
-        st.metric("Total Reports", len(reports))
-
+        st.metric("Total AI Reports", len(reports))
+        
+        # Display reports with download option
         for i, report in enumerate(reports[:20]):
-            report_type = report.get("report_type", "Unknown").replace("_", " ").title()
-            platform = report.get("platform", "N/A").upper()
-            date = report.get("generated_at", "N/A")
-
-            with st.expander(f"Report #{i+1}: {report_type} - {platform} ({date})"):
-                st.json(report.get("analysis", {}))
+            report_type = report.get('report_type', 'Unknown').replace('_', ' ').title()
+            platform = report.get('platform', 'N/A').upper()
+            date = report.get('generated_at', 'N/A')
+            products_analyzed = report.get('products_analyzed', 0)
+            
+            with st.expander(
+                f"📊 {report_type} - {platform} | {date} | {products_analyzed} products",
+                expanded=(i == 0)  # Expand first report by default
+            ):
+                col1, col2 = st.columns([3, 1])
+                
+                with col1:
+                    st.write("**Report Details:**")
+                    st.write(f"- **Type:** {report_type}")
+                    st.write(f"- **Platform:** {platform}")
+                    st.write(f"- **Products Analyzed:** {products_analyzed}")
+                    st.write(f"- **Generated At:** {date}")
+                
+                with col2:
+                    # Download button for each report
+                    if report.get('analysis'):
+                        try:
+                            pdf_bytes = pdf_gen.generate_analysis_report(
+                                report['analysis'],
+                                platform
+                            )
+                            
+                            st.download_button(
+                                label="📥 Download PDF",
+                                data=pdf_bytes,
+                                file_name=f"{report_type.lower().replace(' ', '_')}_{platform}_{i}.pdf",
+                                mime="application/pdf",
+                                key=f"download_{report['_id']}",
+                                use_container_width=True
+                            )
+                        except Exception as e:
+                            st.error(f"PDF generation failed: {str(e)}")
+                
+                # Show analysis summary
+                st.divider()
+                st.write("**Analysis Summary:**")
+                
+                analysis = report.get('analysis', {})
+                
+                if report_type == "Quick Analysis":
+                    # Show key metrics
+                    if 'price_range' in analysis:
+                        price_range = analysis['price_range']
+                        st.write(f"- **Price Range:** ₹{price_range.get('min', 0):,.0f} - ₹{price_range.get('max', 0):,.0f}")
+                        st.write(f"- **Average Price:** ₹{price_range.get('average', 0):,.0f}")
+                    
+                    if 'price_insights' in analysis:
+                        st.write("**Key Insights:**")
+                        for insight in analysis['price_insights'][:3]:
+                            st.write(f"  • {insight}")
+                    
+                    if 'recommendations' in analysis:
+                        st.write("**Top Recommendations:**")
+                        for rec in analysis['recommendations'][:3]:
+                            st.write(f"  • {rec}")
+                
+                else:  # Deep Analysis
+                    if 'final_report' in analysis:
+                        st.write(analysis['final_report'][:500] + "...")
+                    
+                    if 'tasks_completed' in analysis:
+                        st.write(f"- **Tasks Completed:** {analysis['tasks_completed']}")
     else:
-        st.info("No reports generated yet. Run AI analysis to create reports.")
+        st.info("No AI analysis reports found. Generate reports from the AI Insights page.")
 
 # Footer
 st.divider()
