@@ -254,4 +254,4 @@ Synthesize all agent outputs into an executive report:
 #   - crew_manager = RetailIntelligenceCrew(task_delay_seconds=15)  # 15 seconds (default)
 #   - crew_manager = RetailIntelligenceCrew(task_delay_seconds=30)  # 30 seconds
 #   - crew_manager = RetailIntelligenceCrew(task_delay_seconds=60)  # 60 seconds (1 minute)
-crew_manager = RetailIntelligenceCrew(task_delay_seconds=60)
+crew_manager = RetailIntelligenceCrew(task_delay_seconds=30)  # Set to 30 seconds for balanced performance and rate limit compliance
