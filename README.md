@@ -1,165 +1,137 @@
-# Retail Intelligence Platform
+<div align="center">
 
-![CI/CD Status](https://github.com/Nikhilgarg0/retail-ai-intelligence/workflows/Retail%20Intelligence%20CI%2FCD/badge.svg)
-![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
+# 🛒 Retail AI Intelligence Platform
 
-AI-Powered competitive intelligence and market analysis platform for e-commerce retailers.
+### AI-Powered Competitive Intelligence & Market Analysis for E-Commerce Retailers
 
-
-# 🛒 AI-Powered Retail Intelligence Platform
-
-> Automated competitive intelligence and market analysis for retail businesses
-
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
+[![CI/CD Status](https://github.com/Nikhilgarg0/retail-ai-intelligence/workflows/Retail%20Intelligence%20CI%2FCD/badge.svg)](https://github.com/Nikhilgarg0/retail-ai-intelligence/actions)
+[![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-green.svg)](https://www.mongodb.com/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.29.0-red.svg)](https://streamlit.io/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
+
+[Features](#-key-features) · [Architecture](#-system-architecture) · [Installation](#-installation) · [Usage](#-usage) · [Roadmap](#-roadmap) · [Contact](#-contact)
+
+</div>
 
 ---
 
-## 📖 Table of Contents
+## 📖 Overview
 
-- [Overview](#overview)
-- [Key Features](#key-features)
-- [System Architecture](#system-architecture)
-- [Technology Stack](#technology-stack)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Project Structure](#project-structure)
-- [Documentation](#documentation)
-- [Screenshots](#screenshots)
-- [Future Roadmap](#future-roadmap)
-- [Contributing](#contributing)
+The **Retail AI Intelligence Platform** is an end-to-end solution that automates competitive intelligence gathering, price tracking, and market analysis for retail businesses. It combines intelligent web scraping, cloud storage, and multi-agent AI systems to deliver actionable insights through a professional Streamlit dashboard.
 
----
+### The Problem It Solves
 
-## 🎯 Overview
-
-The **AI-Powered Retail Intelligence Platform** is an end-to-end solution that automates competitive intelligence gathering, price tracking, and market analysis for retail businesses. It leverages web scraping, cloud databases, and AI agents to provide actionable insights.
-
-### Business Problem
-
-Retail businesses struggle with:
-- ⏰ **Time-consuming manual price monitoring**
-- 🔍 **Lack of real-time competitive intelligence**
-- 📊 **Difficulty tracking multi-platform pricing**
-- 💡 **Limited data-driven decision making**
-
-### Our Solution
-
-- ✅ **Automated multi-platform scraping** (Amazon, Flipkart)
-- ✅ **Intelligent price tracking** with historical analysis
-- ✅ **AI-powered insights** (single-agent + multi-agent systems)
-- ✅ **Professional dashboard** for visualization
-- ✅ **Exportable PDF reports**
+Retail businesses constantly struggle with time-consuming manual price monitoring, lack of real-time competitive intelligence, difficulty tracking prices across multiple platforms, and limited data-driven decision making. This platform eliminates those pain points with full automation and AI-powered analysis.
 
 ---
 
 ## ✨ Key Features
 
 ### 🔍 Data Collection
-- **Multi-platform scraping**: Amazon India, Flipkart
-- **Smart product tracking**: Unique ID-based deduplication
-- **Automatic categorization**: Electronics, Clothing, Cosmetics, etc.
-- **Real-time updates**: Track price changes as they happen
+- **Multi-platform scraping** — Amazon India & Flipkart
+- **Smart deduplication** — Unique product ID-based tracking
+- **Auto-categorization** — Electronics, Clothing, Cosmetics, Groceries, and more
+- **Real-time updates** — Detect price changes as they happen
 
 ### 📊 Price Intelligence
-- **Historical price tracking**: Track price changes over time
-- **Trend analysis**: Identify upward/downward price movements
-- **Price drop alerts**: Discover opportunities for competitive pricing
-- **Cross-platform comparison**: Compare prices across marketplaces
+- Historical price tracking with trend charts
+- Price drop detection with configurable thresholds
+- Cross-platform price comparison
+- Upward/downward trend identification
 
 ### 🤖 AI-Powered Analysis
 
-#### Quick Analysis (5-10 seconds)
-- Single AI agent using Google Gemini
-- Price range analysis
-- Top-rated products
-- Best value recommendations
+**Quick Analysis** *(~5-10 seconds)*
+- Powered by Google Gemini 2.5 Flash
+- Price range summaries, top-rated products, and best-value picks
 
-#### Deep Analysis (5-6 minutes)
+**Deep Analysis** *(~5-6 minutes)*
 - Multi-agent CrewAI system with 5 specialized agents:
-  - 🔍 **Data Scout**: Market trends and gaps
-  - 💰 **Pricing Strategist**: Pricing optimization
-  - ⚠️ **Risk Assessor**: Market risks and threats
-  - 📈 **Demand Forecaster**: Future demand predictions
-  - 📝 **Report Writer**: Executive summaries
+
+| Agent | Role |
+|-------|------|
+| 🔍 Data Scout | Market trends and gap identification |
+| 💰 Pricing Strategist | Pricing optimization recommendations |
+| ⚠️ Risk Assessor | Market risks and competitive threats |
+| 📈 Demand Forecaster | Future demand and seasonal predictions |
+| 📝 Report Writer | Executive summary generation |
 
 ### 📱 Professional Dashboard
-- Clean, modern interface
-- Real-time metrics and KPIs
-- Interactive data explorer
+- Real-time KPIs and metrics
+- Interactive product explorer with filters
 - Price analytics visualizations
-- Report management
+- Report archive with download support
 
 ### 📄 Reporting
-- Professional PDF generation
+- Professional PDF generation via ReportLab
 - Downloadable analysis reports
 - Historical report archive
-- Custom formatting
+
+---
+
+## 🖼️ Screenshots
+
+| Dashboard | Data Collection |
+|-----------|----------------|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Data Collection](docs/screenshots/Data-Collection.png) |
+
+| Product Explorer | AI Insights |
+|-----------------|-------------|
+| ![Product Explorer](docs/screenshots/Product-Explorer.png) | ![AI Insights](docs/screenshots/AI-Insights.png) |
+
+| Price Analytics | Reports |
+|----------------|---------|
+| ![Price Analytics](docs/screenshots/Price-Analytics.png) | ![Reports](docs/screenshots/Reports.png) |
 
 ---
 
 ## 🏗️ System Architecture
 
-### High-Level Architecture
 ```
 ┌─────────────────────────────────────────────────────────┐
-│              USER INTERFACE LAYER                       │
-│         (Streamlit Professional Dashboard)              │
+│              PRESENTATION TIER                          │
+│         Streamlit Professional Dashboard                │
+│   Dashboard · Data Collection · Product Explorer        │
+│   Price Analytics · AI Insights · Reports Archive       │
 └─────────────────────────────────────────────────────────┘
                          ↓
 ┌─────────────────────────────────────────────────────────┐
-│              APPLICATION LAYER                          │
+│              BUSINESS LOGIC TIER                        │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
 │  │   Scrapers   │  │  AI Agents   │  │   Reports    │  │
 │  │  - Amazon    │  │  - Gemini    │  │  - PDF Gen   │  │
-│  │  - Flipkart  │  │  - CrewAI    │  │  - Export    │  │
+│  │  - Flipkart  │  │  - CrewAI    │  │  - Archive   │  │
 │  └──────────────┘  └──────────────┘  └──────────────┘  │
 └─────────────────────────────────────────────────────────┘
                          ↓
 ┌─────────────────────────────────────────────────────────┐
-│              DATA LAYER                                 │
-│         MongoDB Atlas (Cloud Database)                  │
-│  - Products  - Price History  - Reports                │
+│              DATA TIER                                  │
+│           MongoDB Atlas (Cloud Database)                │
+│    Products · Price History · Reports                   │
 └─────────────────────────────────────────────────────────┘
 ```
-
-![System Architecture](docs/diagrams/system_architecture.png)
-
-### Data Flow
-
-![Data Flow](docs/diagrams/data_flow.png)
-
-### Multi-Agent System
-
-![Multi-Agent System](docs/diagrams/multi_agent.png)
-
-**See full architecture documentation**: [docs/LLD.md](docs/LLD.md)
 
 ---
 
 ## 🛠️ Technology Stack
 
-### Core Technologies
-
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
 | **Language** | Python 3.11+ | Core development |
 | **Web Scraping** | Selenium, BeautifulSoup4 | Data extraction |
-| **AI/LLM** | Google Gemini 2.5 Flash | Quick analysis |
-| **Multi-Agent** | CrewAI, Groq (Llama 3.3) | Deep analysis |
-| **Database** | MongoDB Atlas | Cloud storage |
-| **UI Framework** | Streamlit | Dashboard |
-| **PDF Generation** | ReportLab | Report creation |
+| **Quick AI** | Google Gemini 2.5 Flash | Fast single-agent analysis |
+| **Deep AI** | CrewAI + Groq (Llama 3.3) | Multi-agent deep analysis |
+| **Database** | MongoDB Atlas | Cloud NoSQL storage |
+| **UI Framework** | Streamlit | Interactive dashboard |
+| **PDF Generation** | ReportLab | Professional reports |
 | **Data Processing** | Pandas, NumPy | Data manipulation |
 
 ### External Services
-- **MongoDB Atlas**: Cloud NoSQL database (M0 Free Tier)
-- **Google AI Studio**: Gemini API access
-- **Groq Cloud**: Alternative LLM API
-- **E-commerce Sites**: Amazon.in, Flipkart.com
+- **MongoDB Atlas** — Cloud NoSQL database (M0 Free Tier supported)
+- **Google AI Studio** — Gemini API access
+- **Groq Cloud** — LLM API for CrewAI agents
+- **SerpAPI** — Trending product searches *(roadmap)*
 
 ---
 
@@ -167,247 +139,210 @@ Retail businesses struggle with:
 
 ### Prerequisites
 
-1. **Python 3.11+**
-```powershell
-   python --version
-```
+- Python 3.11+
+- Google Chrome (for Selenium)
+- [MongoDB Atlas Account](https://www.mongodb.com/cloud/atlas/register) (free tier)
+- [Gemini API Key](https://aistudio.google.com/app/apikey) (free)
+- [Groq API Key](https://console.groq.com/) (free tier)
 
-2. **Google Chrome** (for Selenium)
+### Setup
 
-3. **MongoDB Atlas Account** (free tier)
-   - Sign up at: https://www.mongodb.com/cloud/atlas/register
-
-4. **Gemini API Key** (free)
-   - Get from: https://aistudio.google.com/app/apikey
-
-### Setup Steps
-
-1. **Clone the repository**
+**1. Clone the repository**
 ```bash
-   git clone https://github.com/yourusername/retail-ai-intelligence.git
-   cd retail-ai-intelligence
+git clone https://github.com/Nikhilgarg0/retail-ai-intelligence.git
+cd retail-ai-intelligence
 ```
 
-2. **Create virtual environment**
-```powershell
-   python -m venv venv
-   .\venv\Scripts\Activate.ps1  # Windows
-   # source venv/bin/activate    # Mac/Linux
+**2. Create and activate a virtual environment**
+```bash
+# Windows
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+# Mac/Linux
+python -m venv venv
+source venv/bin/activate
 ```
 
-3. **Install dependencies**
-```powershell
-   pip install -r requirements.txt
+**3. Install dependencies**
+```bash
+pip install -r requirements.txt
 ```
 
-4. **Configure environment variables**
+**4. Configure environment variables**
 
-   Create `.env` file:
+Create a `.env` file in the project root:
 ```env
-   GROQ_API_KEY=your_groq_key
-   GEMINI_API_KEY=your_gemini_key
-   MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/retail_intelligence
+GROQ_API_KEY=your_groq_api_key
+GEMINI_API_KEY=your_gemini_api_key
+MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/retail_intelligence
+SERPAPI_KEY=your_serpapi_key  # optional, for trending features
 ```
 
-5. **Run the application**
-```powershell
-   python run_dashboard.py
+**5. Launch the dashboard**
+```bash
+python run_dashboard.py
 ```
 
-6. **Access dashboard**
-   - Open browser: http://localhost:8501
+**6. Open in browser**
+```
+http://localhost:8501
+```
 
 ---
 
 ## 📱 Usage
 
-### 1. Collect Data
+### Collect Data
+1. Go to **Data Collection** in the sidebar
+2. Enter a product search query (e.g., `wireless headphones`)
+3. Select platform — Amazon or Flipkart
+4. Choose a product category
+5. Click **Start Collection**
 
-1. Navigate to **Data Collection** in sidebar
-2. Enter product search query (e.g., "wireless headphones")
-3. Select platform (Amazon or Flipkart)
-4. Choose category
-5. Click "Start Collection"
+### Explore Products
+1. Navigate to **Product Explorer**
+2. Filter by platform, category, or view mode
+3. Click any product to see its price history chart
 
-### 2. Explore Products
-
-1. Go to **Product Explorer**
-2. Use filters (platform, category, view mode)
-3. Click on products for detailed tracking data
-4. View price history charts
-
-### 3. Analyze Data
+### Run AI Analysis
 
 **Quick Analysis:**
-1. Go to **AI Insights**
-2. Select "Quick Analysis"
-3. Choose platform
-4. Click "Generate Analysis"
-5. Download PDF report
+1. Go to **AI Insights** → select *Quick Analysis*
+2. Choose a platform and click **Generate Analysis**
+3. Download the PDF report
 
 **Deep Analysis:**
-1. Select "Deep Analysis (Multi-Agent)"
-2. Wait 5-6 minutes for multi-agent collaboration
-3. View detailed agent outputs
+1. Select *Deep Analysis (Multi-Agent)*
+2. Wait ~5-6 minutes for the 5-agent collaboration to complete
+3. Review each agent's individual output and the final executive summary
 
-### 4. Track Prices
-
+### Track Prices
 1. Navigate to **Price Analytics**
-2. View price drops, increases, and distribution
-3. Set minimum drop percentage filter
-4. Identify opportunities
+2. Set minimum drop percentage filter
+3. Identify pricing opportunities across platforms
 
 ---
 
 ## 📂 Project Structure
+
 ```
 retail-ai-intelligence/
 ├── src/
-│   ├── scrapers/              # Web scraping modules
-│   │   ├── base_scraper.py
-│   │   ├── amazon_scraper.py
-│   │   └── flipkart_scraper.py
-│   ├── database/              # Database operations
-│   │   └── mongo_manager.py
-│   ├── agents/                # AI agents
-│   │   ├── analysis_agent.py  # Single agent
-│   │   └── crew_manager.py    # Multi-agent system
-│   ├── utils/                 # Utilities
-│   │   ├── helpers.py
-│   │   └── pdf_generator.py
+│   ├── scrapers/
+│   │   ├── base_scraper.py        # Shared scraping logic
+│   │   ├── amazon_scraper.py      # Amazon India scraper
+│   │   └── flipkart_scraper.py    # Flipkart scraper
+│   ├── database/
+│   │   └── mongo_manager.py       # MongoDB Atlas operations
+│   ├── agents/
+│   │   ├── analysis_agent.py      # Single-agent (Gemini)
+│   │   └── crew_manager.py        # Multi-agent CrewAI system
+│   ├── utils/
+│   │   ├── helpers.py             # Shared utilities
+│   │   └── pdf_generator.py       # PDF report generation
 │   └── ui/
-│       └── dashboard.py       # Streamlit dashboard
+│       └── dashboard.py           # Streamlit dashboard
 ├── config/
-│   └── settings.py            # Configuration
-├── docs/                      # Documentation
-│   ├── LLD.md                # Low-level design
-│   ├── diagrams/             # Architecture diagrams
-│   └── generate_diagrams.py
-├── data/                      # Local data storage
-├── .env                       # Environment variables
-├── requirements.txt           # Dependencies
-├── README.md
-└── run_dashboard.py          # Application launcher
+│   └── settings.py                # Pydantic-based configuration
+├── docs/
+│   ├── ARCHITECTURE.md            # System architecture docs
+│   ├── LLD.md                     # Low-level design document
+│   └── screenshots/               # UI screenshots
+├── tests/                         # Pytest test suite
+├── .github/workflows/ci-cd.yml    # CI/CD pipeline
+├── run_dashboard.py               # Application entry point
+├── requirements.txt
+└── .env                           # Environment variables (not committed)
 ```
 
 ---
 
-## 📚 Documentation
+## 🧪 Testing
 
-- **[Low-Level Design (LLD)](docs/LLD.md)**: Complete technical documentation
-- **[Architecture Diagrams](docs/diagrams/)**: Visual system design
-- **[API Documentation](docs/API.md)**: Coming soon
+Run the full test suite:
+```bash
+pytest tests/ -v
+```
 
----
-
-## 📸 Screenshots
-
-### Dashboard Home
-![Dashboard](docs/screenshots/dashboard.png)
-*Professional dashboard with key metrics and quick actions*
-
-### Data Collection
-![Scraping](docs/screenshots/scraping.png)
-*Multi-platform data collection interface*
-
-### AI Analysis
-![AI Insights](docs/screenshots/ai_analysis.png)
-*AI-powered market analysis and recommendations*
-
-### Price Analytics
-![Price Tracking](docs/screenshots/price_analytics.png)
-*Price drop detection and trend analysis*
+With coverage:
+```bash
+pytest tests/ --cov=src --cov-report=html
+```
 
 ---
 
-## 🗺️ Future Roadmap
+## 🗺️ Roadmap
 
-### Phase 1: Enhanced Features (Next 1-2 months)
-- [ ] Add Meesho scraper
+**Phase 1 — Core Enhancements**
+- [ ] Meesho scraper integration
 - [ ] Email alerts for price drops
 - [ ] Scheduled automated scraping
-- [ ] Advanced filtering and search
+- [ ] Festive discount detection
 
-### Phase 2: Advanced Analytics (2-4 months)
-- [ ] Machine learning price prediction
-- [ ] Sentiment analysis of reviews
+**Phase 2 — Advanced Analytics**
+- [ ] ML-based price prediction
+- [ ] Customer review sentiment analysis
 - [ ] Market share analysis
-- [ ] Competitive benchmarking
+- [ ] ChromaDB vector storage for semantic report search
 
-### Phase 3: Scale & Deploy (4-6 months)
-- [ ] RESTful API development
-- [ ] Multi-user support
-- [ ] Role-based access control
+**Phase 3 — Scale & Deploy**
+- [ ] RESTful API layer
+- [ ] Multi-user support with RBAC
 - [ ] Docker containerization
 - [ ] Kubernetes deployment
 
-### Phase 4: Intelligence (6+ months)
-- [ ] Recommendation engine
+**Phase 4 — Intelligence Layer**
+- [ ] Demand forecasting models
 - [ ] Anomaly detection
-- [ ] Custom ML models
-- [ ] Real-time streaming data
+- [ ] Location-based logistics analysis
+- [ ] Real-time streaming data pipeline
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please:
+Contributions are welcome!
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
+2. Create a feature branch — `git checkout -b feature/your-feature`
+3. Commit your changes — `git commit -m 'Add: your feature description'`
+4. Push to the branch — `git push origin feature/your-feature`
 5. Open a Pull Request
+
+Please ensure your code passes all tests and follows the existing style conventions.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 👨‍💻 Author
+## 📬 Contact
 
-**[Your Name]**
-- GitHub: [@yourusername](https://github.com/yourusername)
-- LinkedIn: [Your LinkedIn](https://linkedin.com/in/yourprofile)
-- Email: your.email@example.com
+**Nikhil Garg**
+
+[![GitHub](https://img.shields.io/badge/GitHub-Nikhilgarg0-181717?logo=github)](https://github.com/Nikhilgarg0/retail-ai-intelligence)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Nikhil--garg8982-0A66C2?logo=linkedin)](https://www.linkedin.com/in/Nikhil-garg8982)
+[![Email](https://img.shields.io/badge/Email-official.nikhilgarg%40gmail.com-D14836?logo=gmail)](mailto:official.nikhilgarg@gmail.com)
 
 ---
 
 ## 🙏 Acknowledgments
 
-- **Google Gemini** for AI capabilities
-- **CrewAI** for multi-agent framework
-- **MongoDB** for database infrastructure
-- **Streamlit** for rapid UI development
-- Instructor **[Instructor Name]** for project guidance
+- [Google Gemini](https://deepmind.google/technologies/gemini/) — Powering quick AI analysis
+- [CrewAI](https://www.crewai.com/) — Multi-agent orchestration framework
+- [MongoDB Atlas](https://www.mongodb.com/atlas) — Cloud database infrastructure
+- [Streamlit](https://streamlit.io/) — Rapid dashboard development
 
 ---
 
-## 📊 Project Stats
+<div align="center">
 
-- **Lines of Code**: ~3,500+
-- **Python Files**: 15+
-- **Test Coverage**: In progress
-- **Database Collections**: 2
-- **AI Agents**: 6 (1 single + 5 multi-agent)
-- **Supported Platforms**: 2 (Amazon, Flipkart)
-- **Categories**: 5
+**Built with ❤️ using Python, AI & Cloud Technologies**
 
----
+⭐ If you find this project useful, please consider giving it a star!
 
-## 🔗 Quick Links
-
-- [Installation Guide](#installation)
-- [Usage Guide](#usage)
-- [Architecture Documentation](docs/LLD.md)
-- [API Reference](docs/API.md) (Coming soon)
-- [Deployment Guide](docs/DEPLOYMENT.md) (Coming soon)
-
----
-
-**Built with ❤️ using Python, AI, and Cloud Technologies**
-
-*Last Updated: February 15, 2026*
+</div>
