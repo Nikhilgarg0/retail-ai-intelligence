@@ -561,7 +561,7 @@ if page == "Dashboard":
                 "Trend":    (p.get("price_trend") or "stable").capitalize(),
                 "Last Updated": str(p.get("last_seen", "—"))[:16],
             })
-        st.dataframe(pd.DataFrame(rows), width='stretch, hide_index=True)
+        st.dataframe(pd.DataFrame(rows), width='stretch', hide_index=True)
     else:
         st.info("No activity yet. Start by collecting data from the Data Collection page.")
 
@@ -586,7 +586,7 @@ elif page == "Data Collection":
         with col3:
             max_results = st.number_input("Max Results", min_value=1, max_value=50, value=10)
 
-        clicked = st.button("Start Collection", type="primary", width='stretch)
+        clicked = st.button("Start Collection", type="primary", width='stretch')
 
     if clicked:
         if not search_query:
@@ -622,7 +622,7 @@ elif page == "Data Collection":
                             "Rating":   f"{p['rating']:.1f}" if p.get("rating") else "—",
                             "Platform": (p.get("platform") or "").upper(),
                         })
-                    st.dataframe(pd.DataFrame(df_data), width='stretch, hide_index=True)
+                    st.dataframe(pd.DataFrame(df_data), width='stretch', hide_index=True)
                 else:
                     pb.empty()
                     st.error("No products found. Try a different search query.")
@@ -655,7 +655,7 @@ elif page == "Product Explorer":
         with c1: ms_amazon   = st.checkbox("Amazon",   value=True, key="ms_am")
         with c2: ms_flipkart = st.checkbox("Flipkart", value=True, key="ms_fk")
 
-        if st.button("Search All Platforms", type="primary", width='stretch):
+        if st.button("Search All Platforms", type="primary", width='stretch'):
             if not ms_query:
                 st.warning("Enter a search query")
             elif not (ms_amazon or ms_flipkart):
@@ -713,7 +713,7 @@ elif page == "Product Explorer":
                                  "Price": fmt_price(p.get("price")),
                                  "Rating": f"{p['rating']:.1f}" if p.get("rating") else "—"}
                                 for p in prods]
-                        st.dataframe(pd.DataFrame(rows), width='stretch, hide_index=True)
+                        st.dataframe(pd.DataFrame(rows), width='stretch', hide_index=True)
                 else:
                     st.error("No products found. Try different search terms.")
 
@@ -758,7 +758,7 @@ elif page == "Product Explorer":
                     "Change":   f"{p.get('price_change_percent',0):.1f}%",
                     "Scrapes":  p.get("times_scraped", 0),
                 })
-            st.dataframe(pd.DataFrame(rows), width='stretch, hide_index=True)
+            st.dataframe(pd.DataFrame(rows), width='stretch', hide_index=True)
 
             st.divider()
             st.markdown("#### Product Details")
@@ -790,7 +790,7 @@ elif page == "Product Explorer":
                     h = pd.DataFrame(p["price_history"])
                     h["timestamp"] = pd.to_datetime(h["timestamp"])
                     st.line_chart(h.sort_values("timestamp").set_index("timestamp")["price"],
-                                  width='stretch)
+                                  width='stretch')
         else:
             st.info("No products found for the selected filters.")
 
@@ -810,7 +810,7 @@ elif page == "Product Explorer":
                                    format_func=lambda i: f"{all_prods[i].get('platform','?').upper()} — {all_prods[i].get('title','')[:50]}",
                                    index=1, key="cmp2")
 
-            if st.button("Run Comparison", type="primary", width='stretch):
+            if st.button("Run Comparison", type="primary", width='stretch'):
                 p1, p2 = all_prods[p1i], all_prods[p2i]
                 cmp = {
                     "Attribute": ["Platform", "Title", "Current Price", "Rating",
@@ -834,7 +834,7 @@ elif page == "Product Explorer":
                         str(p2.get("first_seen","—"))[:10],
                     ],
                 }
-                st.dataframe(pd.DataFrame(cmp), width='stretch, hide_index=True)
+                st.dataframe(pd.DataFrame(cmp), width='stretch', hide_index=True)
 
                 pr1, pr2 = p1.get("current_price"), p2.get("current_price")
                 if pr1 and pr2:
@@ -902,7 +902,7 @@ elif page == "Price Analytics":
                     "Previous": fmt_price(p.get("lowest_price")),
                     "Change":   f"+{(p.get('price_change_percent') or 0):.1f}%",
                 })
-            st.dataframe(pd.DataFrame(rows), width='stretch, hide_index=True)
+            st.dataframe(pd.DataFrame(rows), width='stretch', hide_index=True)
         else:
             st.info("No price increases detected.")
 
@@ -919,7 +919,7 @@ elif page == "Price Analytics":
             m3.metric("Highest",       fmt_price(max(prices)))
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("**Distribution**")
-            st.bar_chart(pd.Series(prices, name="Price (₹)"), width='stretch)
+            st.bar_chart(pd.Series(prices, name="Price (₹)"), width='stretch')
         else:
             st.info("No pricing data available.")
 
@@ -959,7 +959,7 @@ elif page == "AI Insights":
             count = db_manager.products.count_documents(query)
             st.metric("Products to Analyse", count)
 
-        run_btn = st.button("Run Analysis", type="primary", width='stretch)
+        run_btn = st.button("Run Analysis", type="primary", width='stretch')
 
     if run_btn:
         products = list(db_manager.products.find(query))
@@ -1087,7 +1087,7 @@ elif page == "AI Insights":
             st.download_button(
                 "Download PDF Report", data=pdf_bytes,
                 file_name=f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                mime="application/pdf", width='stretch
+                mime="application/pdf", width='stretch'
             )
 
         else:  # deep
@@ -1165,7 +1165,7 @@ elif page == "Reports":
                                 file_name=f"report_{rtype.lower().replace(' ','_')}_{i}.pdf",
                                 mime="application/pdf",
                                 key=f"dl_{r['_id']}",
-                                width='stretch
+                                width='stretch'
                             )
                         except Exception as e:
                             st.error(f"PDF failed: {e}")
