@@ -4,7 +4,6 @@ run_dashboard.py — Entry point for the Retail Intelligence Platform (Streamlit
 import os
 import sys
 
-# ── Make sure the project root is on the Python path ─────────────────
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 if __name__ == "__main__":
@@ -15,16 +14,15 @@ if __name__ == "__main__":
     cmd = [
         sys.executable, "-m", "streamlit", "run",
         "src/ui/dashboard.py",
-        "--server.port",           str(port),
-        "--server.headless",       "false",
-        "--server.runOnSave",      "true",
-        "--server.fileWatcherType","poll",
-        "--theme.base",            "light",
+        "--server.port", str(port),
+        "--server.address", "0.0.0.0",
+        "--server.headless", "true",
+        "--server.fileWatcherType", "none",
+        "--theme.base", "light",
     ]
 
-    print(f"\n  Retail Intelligence Platform")
-    print(f"  ->  Local:  http://localhost:{port}")
-    print(f"  Press Ctrl+C to quit\n")
+    print(f"\nRetail Intelligence Platform")
+    print(f"-> Running on port {port}\n")
 
     proc = subprocess.Popen(cmd)
     try:
