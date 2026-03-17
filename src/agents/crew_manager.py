@@ -2,6 +2,7 @@ from crewai import Agent, Task, Crew, Process
 from typing import List, Dict
 import json
 import logging
+import os
 import time
 
 logging.basicConfig(level=logging.INFO)
@@ -24,9 +25,20 @@ class RetailIntelligenceCrew:
         )
 
     def create_agents(self) -> Dict[str, Agent]:
-        """Create specialized AI agents using Groq"""
+        """Create specialized AI agents.
 
-        MODEL = "groq/llama-3.1-8b-instant"
+        The model is read from the CREW_LLM_MODEL environment variable so you
+        can swap providers without touching code.  Falls back to the Groq model
+        that was used originally.
+
+        Supported examples:
+          groq/llama-3.1-8b-instant   (default - requires GROQ_API_KEY + litellm)
+          groq/llama-3.3-70b-versatile
+          anthropic/claude-3-5-haiku-20241022  (requires ANTHROPIC_API_KEY)
+          openai/gpt-4o-mini           (requires OPENAI_API_KEY)
+        """
+
+        MODEL = os.environ.get("CREW_LLM_MODEL", "groq/llama-3.1-8b-instant")
 
         data_scout = Agent(
             role="Data Scout",
