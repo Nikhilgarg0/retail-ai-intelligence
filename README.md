@@ -341,8 +341,6 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 <div align="center">
 
-**Built with ❤️ using Python, AI & Cloud Technologies**
-
 ⭐ If you find this project useful, please consider giving it a star!
 
 </div>
