@@ -255,7 +255,7 @@ def get_price_drops():
 def get_price_analytics():
     try:
         products = db_manager.get_all_products(limit=200)
-        prices = [p["current_price"] for p in products if p.get("current_price")]
+        prices = [p.get("current_price") for p in products if p.get("current_price") is not None]
         price_increases = [p for p in products if p.get("price_trend") == "up"]
 
         return jsonify({

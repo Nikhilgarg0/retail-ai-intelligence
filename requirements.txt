@@ -16,7 +16,8 @@ pandas>=2.1.0
 numpy>=1.24.0
 
 # Frontend
-streamlit>=1.32.0
+flask>=3.0.0
+flask-cors>=4.0.0
 
 # PDF Generation
 reportlab>=4.0.0

@@ -7,7 +7,7 @@
 [![CI/CD Status](https://github.com/Nikhilgarg0/retail-ai-intelligence/workflows/Retail%20Intelligence%20CI%2FCD/badge.svg)](https://github.com/Nikhilgarg0/retail-ai-intelligence/actions)
 [![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-green.svg)](https://www.mongodb.com/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.29.0-red.svg)](https://streamlit.io/)
+[![Flask](https://img.shields.io/badge/Flask-3.0+-blue.svg)](https://flask.palletsprojects.com/)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
 [Features](#-key-features) · [Architecture](#-system-architecture) · [Installation](#-installation) · [Usage](#-usage) · [Roadmap](#-roadmap) · [Contact](#-contact)
@@ -18,7 +18,7 @@
 
 ## 📖 Overview
 
-The **Retail AI Intelligence Platform** is an end-to-end solution that automates competitive intelligence gathering, price tracking, and market analysis for retail businesses. It combines intelligent web scraping, cloud storage, and multi-agent AI systems to deliver actionable insights through a professional Streamlit dashboard.
+The **Retail AI Intelligence Platform** is an end-to-end solution that automates competitive intelligence gathering, price tracking, and market analysis for retail businesses. It combines intelligent web scraping, cloud storage, and multi-agent AI systems to deliver actionable insights through a professional web dashboard powered by Flask.
 
 ### The Problem It Solves
 
@@ -91,7 +91,7 @@ Retail businesses constantly struggle with time-consuming manual price monitorin
 ```
 ┌─────────────────────────────────────────────────────────┐
 │              PRESENTATION TIER                          │
-│         Streamlit Professional Dashboard                │
+│       Flask REST API + HTML/CSS/JS Frontend             │
 │   Dashboard · Data Collection · Product Explorer        │
 │   Price Analytics · AI Insights · Reports Archive       │
 └─────────────────────────────────────────────────────────┘
@@ -123,7 +123,7 @@ Retail businesses constantly struggle with time-consuming manual price monitorin
 | **Quick AI** | Google Gemini 2.5 Flash | Fast single-agent analysis |
 | **Deep AI** | CrewAI + Groq (Llama 3.3) | Multi-agent deep analysis |
 | **Database** | MongoDB Atlas | Cloud NoSQL storage |
-| **UI Framework** | Streamlit | Interactive dashboard |
+| **UI Framework** | Flask + HTML/CSS/JS | Interactive dashboard |
 | **PDF Generation** | ReportLab | Professional reports |
 | **Data Processing** | Pandas, NumPy | Data manipulation |
 
@@ -186,7 +186,7 @@ python run_dashboard.py
 
 **6. Open in browser**
 ```
-http://localhost:8501
+http://localhost:5000
 ```
 
 ---
@@ -242,7 +242,9 @@ retail-ai-intelligence/
 │   │   ├── helpers.py             # Shared utilities
 │   │   └── pdf_generator.py       # PDF report generation
 │   └── ui/
-│       └── dashboard.py           # Streamlit dashboard
+│       ├── index.html             # Frontend HTML
+│       ├── app.js                 # Frontend JavaScript
+│       └── style.css              # Frontend styles
 ├── config/
 │   └── settings.py                # Pydantic-based configuration
 ├── docs/
@@ -335,7 +337,7 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 - [Google Gemini](https://deepmind.google/technologies/gemini/) — Powering quick AI analysis
 - [CrewAI](https://www.crewai.com/) — Multi-agent orchestration framework
 - [MongoDB Atlas](https://www.mongodb.com/atlas) — Cloud database infrastructure
-- [Streamlit](https://streamlit.io/) — Rapid dashboard development
+- [Flask](https://flask.palletsprojects.com/) — Lightweight web framework
 
 ---
 

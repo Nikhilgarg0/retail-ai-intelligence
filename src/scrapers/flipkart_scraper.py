@@ -54,95 +54,72 @@ class FlipkartScraper(BaseScraper):
         return products
 
     def _extract_product_info(self, product_div) -> Optional[Dict]:
-        """Extract information from a single product card - FIXED VERSION"""
+        """Extract information from a single product card using stable structural selectors"""
         try:
-            # Product ID (from data-id attribute) - CRITICAL
+            # Product ID from data-id attribute — stable
             product_id = product_div.get("data-id")
-
             if not product_id:
-                logger.debug("No product ID found, skipping")
                 return None
 
-            # Find the main product link
-            link_element = product_div.find("a", class_="GnxRXv")
-
+            # Product link — find any <a> that contains /p/ in href (stable URL pattern)
+            link_element = product_div.find("a", href=re.compile(r"/p/"))
             if not link_element:
-                logger.debug("No link found, skipping product")
                 return None
 
-            # Product URL
-            url = (
-                self.base_url + link_element["href"]
-                if link_element and "href" in link_element.attrs
-                else None
-            )
+            url = self.base_url + link_element["href"] if link_element.get("href") else None
 
-            # Extract product title from image alt text
+            # Title — from image alt text (most reliable) or parsed from URL
             title = None
-            img_element = product_div.find("img", class_="UCc1lI")
-            if img_element and "alt" in img_element.attrs:
+            img_element = product_div.find("img", src=re.compile(r"rukminim|flixcart"))
+            if img_element and img_element.get("alt"):
                 title = img_element["alt"]
 
-            # If no title from image, try to extract from URL
             if not title and url:
                 match = re.search(r"/([^/]+)/p/", url)
                 if match:
                     title = match.group(1).replace("-", " ").title()
 
             if not title:
-                logger.debug("No title found, skipping product")
                 return None
 
-            # Image URL
-            image_url = (
-                img_element["src"]
-                if img_element and "src" in img_element.attrs
-                else None
-            )
+            image_url = img_element["src"] if img_element and img_element.get("src") else None
 
-            # Price - FIXED: Use the correct class
+            # Price — find text nodes containing ₹ symbol
             price = None
-            price_element = product_div.find("div", class_="hZ3P6w")
+            for tag in product_div.find_all(string=re.compile(r"₹")):
+                cleaned = clean_price(tag.strip())
+                if cleaned and cleaned > 100:  # ignore delivery charges etc.
+                    price = cleaned
+                    break
 
-            if price_element:
-                price_text = price_element.get_text(strip=True)
-                price = clean_price(price_text)
-
-            # Rating - FIXED: Extract from text
+            # Rating — find a tag whose text looks like a rating (e.g. "4.2")
             rating = None
-            # Flipkart shows rating as plain text, find any text that looks like a rating (e.g., "3.8", "4.2")
-            all_text = product_div.get_text()
-            # Look for pattern like "3.8" or "4.2" (digit.digit)
-            rating_match = re.search(r"\b([0-5]\.\d)\b", all_text)
-            if rating_match:
+            for tag in product_div.find_all(string=re.compile(r"^\d\.\d$")):
                 try:
-                    rating = float(rating_match.group(1))
+                    rating = float(tag.strip())
+                    break
                 except ValueError:
-                    rating = None
+                    continue
 
-            # Reviews count - Try to find review count
+            # Reviews — find text like "(1,234)" or "1,234 Ratings"
             reviews = "0"
-            reviews_element = product_div.find("span", class_="Wphh3N")
-            if reviews_element:
-                reviews = reviews_element.get_text(strip=True)
+            reviews_match = product_div.find(
+                string=re.compile(r"\d[\d,]+\s*(Ratings|Reviews|ratings|reviews)")
+            )
+            if reviews_match:
+                reviews = reviews_match.strip()
 
-            # NEW SCHEMA FORMAT
-            product_data = {
+            return {
                 "platform": self.platform,
-                "product_id": product_id,  # CRITICAL: Unique ID
+                "product_id": product_id,
                 "title": title,
                 "price": price,
                 "rating": rating,
                 "reviews": reviews,
                 "url": url,
                 "image_url": image_url,
-                "category": None,  # Will be set when saving
+                "category": None,
             }
-
-            logger.debug(
-                f"Extracted: {title[:50]}... | ID: {product_id} | ₹{price} | {rating}⭐"
-            )
-            return product_data
 
         except Exception as e:
             logger.error(f"Error extracting product: {e}")

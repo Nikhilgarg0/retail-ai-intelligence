@@ -6,7 +6,7 @@ import os
 class Settings(BaseSettings):
     # API Keys
     groq_api_key: str
-    serpapi_key: str
+    serpapi_key: Optional[str] = None
     gemini_api_key: str  # Changed from anthropic
 
     # Database - MongoDB Atlas
@@ -25,6 +25,9 @@ class Settings(BaseSettings):
 # Create global settings instance
 try:
     settings = Settings()
+    # Bridge keys into os.environ so CrewAI/litellm can read them
+    os.environ.setdefault("GROQ_API_KEY", settings.groq_api_key or "")
+    os.environ.setdefault("GEMINI_API_KEY", settings.gemini_api_key or "")
     print("✅ Settings loaded successfully!")
 except Exception as e:
     print(f"❌ Error loading settings: {e}")
