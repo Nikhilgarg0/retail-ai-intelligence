@@ -1,6 +1,5 @@
 from crewai import Agent, Task, Crew, Process
 from typing import List, Dict
-import json
 import logging
 import os
 import time
@@ -10,35 +9,12 @@ logger = logging.getLogger(__name__)
 
 
 class RetailIntelligenceCrew:
-    """Multi-agent system for comprehensive retail analysis"""
 
-    def __init__(self, task_delay_seconds: int = 15):
-        """
-        Initialize the crew manager.
-
-        Args:
-            task_delay_seconds: Delay in seconds between task executions to avoid rate limits (default: 15)
-        """
-        self.task_delay_seconds = task_delay_seconds
-        logger.info(
-            f"⏱️ Task delay set to {task_delay_seconds} seconds between executions"
-        )
+    def __init__(self):
+        self.model = "groq/llama-3.1-8b-instant"
+        logger.info(f"🤖 Crew using model: {self.model}")
 
     def create_agents(self) -> Dict[str, Agent]:
-        """Create specialized AI agents.
-
-        The model is read from the CREW_LLM_MODEL environment variable so you
-        can swap providers without touching code.  Falls back to the Groq model
-        that was used originally.
-
-        Supported examples:
-          groq/llama-3.1-8b-instant   (default - requires GROQ_API_KEY + litellm)
-          groq/llama-3.3-70b-versatile
-          anthropic/claude-3-5-haiku-20241022  (requires ANTHROPIC_API_KEY)
-          openai/gpt-4o-mini           (requires OPENAI_API_KEY)
-        """
-
-        MODEL = os.environ.get("CREW_LLM_MODEL", "groq/llama-3.1-8b-instant")
 
         data_scout = Agent(
             role="Data Scout",
@@ -47,9 +23,10 @@ class RetailIntelligenceCrew:
                 "You are an expert market researcher with deep experience in "
                 "e-commerce trends, consumer behavior, and competitive analysis."
             ),
-            llm=MODEL,
-            verbose=True,
+            llm=self.model,
+            verbose=False,
             allow_delegation=False,
+            max_iter=2,
         )
 
         pricing_analyst = Agent(
@@ -59,9 +36,10 @@ class RetailIntelligenceCrew:
                 "You are a pricing expert who understands margins, elasticity, "
                 "and competitive positioning in retail markets."
             ),
-            llm=MODEL,
-            verbose=True,
+            llm=self.model,
+            verbose=False,
             allow_delegation=False,
+            max_iter=2,
         )
 
         risk_assessor = Agent(
@@ -71,21 +49,10 @@ class RetailIntelligenceCrew:
                 "You are a retail risk analyst skilled at identifying saturation, "
                 "pricing wars, and structural weaknesses before they escalate."
             ),
-            llm=MODEL,
-            verbose=True,
+            llm=self.model,
+            verbose=False,
             allow_delegation=False,
-        )
-
-        demand_forecaster = Agent(
-            role="Demand Forecaster",
-            goal="Forecast short-term and medium-term product demand",
-            backstory=(
-                "You are a data-driven forecaster who analyzes seasonality, "
-                "market signals, and historical behavior to predict demand."
-            ),
-            llm=MODEL,
-            verbose=True,
-            allow_delegation=False,
+            max_iter=2,
         )
 
         report_writer = Agent(
@@ -95,26 +62,25 @@ class RetailIntelligenceCrew:
                 "You are a consultant who converts complex analysis into "
                 "executive-ready insights and action plans."
             ),
-            llm=MODEL,
-            verbose=True,
-            allow_delegation=True,
+            llm=self.model,
+            verbose=False,
+            allow_delegation=False,
+            max_iter=2,
         )
 
         return {
             "scout": data_scout,
             "pricing": pricing_analyst,
             "risk": risk_assessor,
-            "forecast": demand_forecaster,
             "writer": report_writer,
         }
 
     def create_tasks(self, agents: Dict[str, Agent], products_data: str) -> List[Task]:
-        """Create tasks for each agent"""
 
         scout_task = Task(
             description=f"""
 Analyze the product data and identify:
-- Emerging product categories
+- Emerging product categories and trends
 - Common traits of high-performing products
 - Market gaps or opportunities
 
@@ -122,136 +88,131 @@ PRODUCT DATA:
 {products_data}
 """,
             agent=agents["scout"],
-            expected_output="Market trends and opportunity analysis",
+            expected_output="A concise bullet-point market trends and opportunity analysis.",
         )
 
         pricing_task = Task(
             description=f"""
-Analyze pricing across products:
+Analyze pricing across the products:
 - Identify overpriced and underpriced items
-- Recommend pricing adjustments
-- Explain rationale clearly
+- Recommend specific pricing adjustments
+- Explain the rationale clearly
 
 PRODUCT DATA:
 {products_data}
 """,
             agent=agents["pricing"],
-            expected_output="Pricing recommendations with justification",
+            expected_output="Pricing recommendations with clear justification for each.",
         )
 
         risk_task = Task(
             description=f"""
 Identify risks in the current product portfolio:
-- Market saturation
+- Market saturation risks
 - Competitive threats
-- Pricing pressure
-- Inventory or positioning risks
+- Pricing pressure points
 
 PRODUCT DATA:
 {products_data}
 """,
             agent=agents["risk"],
-            expected_output="Prioritized risks with mitigation strategies",
-        )
-
-        forecast_task = Task(
-            description=f"""
-Forecast demand for key products:
-- 1-month and 3-month outlook
-- Seasonality considerations
-- Products likely to spike or decline
-
-PRODUCT DATA:
-{products_data}
-""",
-            agent=agents["forecast"],
-            expected_output="Demand forecasts with confidence levels",
+            expected_output="A prioritized list of risks with mitigation strategies.",
         )
 
         writer_task = Task(
-            description="""
-Synthesize all agent outputs into an executive report:
-- Key insights
-- Top 5 recommendations
-- 30 / 90 day action plan
+            description=f"""
+Write a concise executive report covering:
+- 3 key market insights
+- Top 5 actionable recommendations
+- 30-day and 90-day action plan
+
+Use this product data as context:
+{products_data}
 """,
             agent=agents["writer"],
-            expected_output="Executive-ready strategic report",
+            expected_output="A structured executive report ready for business review.",
         )
 
-        return [
-            scout_task,
-            pricing_task,
-            risk_task,
-            forecast_task,
-            writer_task,
-        ]
+        return [scout_task, pricing_task, risk_task, writer_task]
 
     def analyze_products(self, products: List[Dict]) -> Dict:
-        """Run the multi-agent analysis with rate limiting"""
+        logger.info("⚙️ Initializing crew and tasks...")
 
-        logger.info("⚙️ Preparing crew and tasks...")
+        if not products:
+            return {"error": "No products provided for analysis"}
 
         products_summary = self._prepare_product_summary(products)
-
         agents = self.create_agents()
         tasks = self.create_tasks(agents, products_summary)
 
-        # Execute tasks sequentially with delays
         try:
-            logger.info("🚀 Sequential execution with rate limiting started...")
             results = []
 
-            for i, task in enumerate(tasks, 1):
-                logger.info(f"📋 Executing Task {i}/{len(tasks)}: {task.agent.role}")
+            for i, task in enumerate(tasks):
+                logger.info(f"📋 Running task {i+1}/{len(tasks)}: {task.agent.role}")
 
-                # Create a mini-crew for this single task
                 mini_crew = Crew(
                     agents=[task.agent],
                     tasks=[task],
                     process=Process.sequential,
-                    verbose=True,
+                    verbose=False,
                 )
 
                 task_result = mini_crew.kickoff()
-                results.append({"agent": task.agent.role, "output": str(task_result)})
+                output = task_result.raw if hasattr(task_result, "raw") else str(task_result)
 
-                logger.info(f"✅ Task {i} completed")
+                results.append({
+                    "agent": task.agent.role,
+                    "output": output,
+                })
 
-                # Add delay between tasks (except after the last one)
-                if i < len(tasks):
-                    logger.info(
-                        f"⏳ Waiting {self.task_delay_seconds} seconds before next task..."
-                    )
-                    time.sleep(self.task_delay_seconds)
+                logger.info(f"✅ Task {i+1}/{len(tasks)} complete")
 
-            # Final report is the last task's output
+                if i < len(tasks) - 1:
+                    logger.info(f"⏳ Waiting 60 seconds before next task...")
+                    time.sleep(60)
+
             final_report = results[-1]["output"] if results else "No results generated"
-
             logger.info("✅ All tasks completed successfully")
 
             return {
                 "final_report": final_report,
                 "detailed_results": results,
                 "tasks_completed": len(results),
+                "model_used": self.model,
             }
 
         except Exception as e:
             logger.error(f"❌ Crew execution failed: {e}")
-            return {"error": str(e)}
+            error_msg = str(e)
+            if "rate" in error_msg.lower() or "429" in error_msg:
+                return {
+                    "error": (
+                        "Groq rate limit hit. Wait a minute and try again."
+                    )
+                }
+            if "auth" in error_msg.lower() or "401" in error_msg or "api key" in error_msg.lower():
+                return {
+                    "error": (
+                        "Authentication failed. Check that GROQ_API_KEY is "
+                        "correct in your .env file."
+                    )
+                }
+            return {"error": error_msg}
 
     def _prepare_product_summary(self, products: List[Dict]) -> str:
-        """Condense product data for LLM context"""
-
         lines = []
         for i, product in enumerate(products[:20]):
             line = f"{i+1}. {product.get('title', 'Untitled')}"
-            if product.get("price"):
-                line += f" | ₹{product['price']}"
-            if product.get("rating"):
-                line += f" | {product['rating']}⭐"
+            price = product.get("current_price") or product.get("price")
+            rating = product.get("current_rating") or product.get("rating")
+            if price:
+                line += f" | ₹{price:,.0f}"
+            if rating:
+                line += f" | {rating}⭐"
             if product.get("platform"):
                 line += f" | [{product['platform'].upper()}]"
+            line += f" | Trend: {product.get('price_trend', 'N/A')}"
             lines.append(line)
 
         if len(products) > 20:
@@ -261,9 +222,4 @@ Synthesize all agent outputs into an executive report:
 
 
 # Global instance
-# Adjust task_delay_seconds here to change the delay between all task executions
-# Examples:
-#   - crew_manager = RetailIntelligenceCrew(task_delay_seconds=15)  # 15 seconds (default)
-#   - crew_manager = RetailIntelligenceCrew(task_delay_seconds=30)  # 30 seconds
-#   - crew_manager = RetailIntelligenceCrew(task_delay_seconds=60)  # 60 seconds (1 minute)
-crew_manager = RetailIntelligenceCrew(task_delay_seconds=30)  # Set to 30 seconds for balanced performance and rate limit compliance
+crew_manager = RetailIntelligenceCrew()
