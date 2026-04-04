@@ -127,6 +127,12 @@ def collect_data():
         elif platform == "flipkart":
             from src.scrapers.flipkart_scraper import FlipkartScraper
             scraper = FlipkartScraper()
+        elif platform == "myntra":
+            from src.scrapers.myntra_scraper import MyntraScraper
+            scraper = MyntraScraper()
+        elif platform == "ajio":
+            from src.scrapers.ajio_scraper import AjioScraper
+            scraper = AjioScraper()
         else:
             return jsonify({"error": f"Unknown platform: {platform}"}), 400
 
@@ -209,6 +215,12 @@ def multi_platform_search():
             elif platform == "flipkart":
                 from src.scrapers.flipkart_scraper import FlipkartScraper
                 scraper = FlipkartScraper()
+            elif platform == "myntra":
+                from src.scrapers.myntra_scraper import MyntraScraper
+                scraper = MyntraScraper()
+            elif platform == "ajio":
+                from src.scrapers.ajio_scraper import AjioScraper
+                scraper = AjioScraper()
             else:
                 continue
 
