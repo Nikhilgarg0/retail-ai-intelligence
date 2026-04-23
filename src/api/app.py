@@ -12,6 +12,8 @@ from flask import Flask, jsonify, request, send_file, send_from_directory
 from flask_cors import CORS
 import io
 
+from src.api.chat import chat_bp
+
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -33,6 +35,8 @@ CORS(app)
 # Singleton instances
 _agent = None
 _pdf_gen = None
+
+app.register_blueprint(chat_bp)
 
 def get_agent():
     global _agent

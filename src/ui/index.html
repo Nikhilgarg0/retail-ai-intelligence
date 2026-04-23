@@ -27,7 +27,6 @@
           </svg>
         </div>
         <div class="logo-text">
-          <span class="logo-name">RetailIQ</span>
           <span class="logo-sub">Intelligence Platform</span>
         </div>
       </div>
@@ -104,6 +103,13 @@
           <line x1="16" y1="17" x2="8" y2="17" />
         </svg>
         <span>Reports</span>
+      </a>
+
+      <a href="#" class="nav-item" data-page="chatbot" id="nav-chatbot">
+        <svg class="nav-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+        </svg>
+        <span>Report Chat</span>
       </a>
 
     </nav>
@@ -556,6 +562,97 @@
       <div id="reportsResult"></div>
     </section>
 
+
+  <section class="page" id="page-chatbot">
+ 
+      <!-- Top bar -->
+      <div class="page-intro">
+        <p class="page-intro-desc">Select a report and chat with the AI about it in plain English or Hinglish.</p>
+      </div>
+ 
+      <!-- Two-column layout: report picker left, chat right -->
+      <div class="chat-layout">
+ 
+        <!-- ── LEFT: Report Selector Panel ───────────────────────── -->
+        <aside class="chat-sidebar-panel">
+          <div class="card" style="height:100%">
+            <div class="card-hd">
+              <span class="card-title">Reports</span>
+              <button class="btn btn-ghost btn-sm" onclick="loadChatReports()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 4 23 10 17 10"/>
+                  <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+                </svg>
+              </button>
+            </div>
+            <div id="chatReportList" class="chat-report-list">
+              <div class="chat-empty-state">
+                <p>Loading reports…</p>
+              </div>
+            </div>
+          </div>
+        </aside>
+ 
+        <!-- ── RIGHT: Chat Window ─────────────────────────────────── -->
+        <div class="chat-main">
+          <div class="card chat-card">
+ 
+            <!-- Active report banner -->
+            <div id="chatActiveBanner" class="chat-active-banner hidden">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <span id="chatActiveName">No report selected</span>
+              <button class="chat-clear-btn" onclick="clearChat()" title="Clear conversation">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                  <path d="M10 11v6M14 11v6"/>
+                </svg>
+                Clear
+              </button>
+            </div>
+ 
+            <!-- No report selected state -->
+            <div id="chatNoReport" class="chat-no-report">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text-3)">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+              </svg>
+              <p>Select a report from the left panel to start chatting</p>
+            </div>
+ 
+            <!-- Messages area -->
+            <div id="chatMessages" class="chat-messages hidden"></div>
+ 
+            <!-- Typing indicator -->
+            <div id="chatTyping" class="chat-typing hidden">
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+            </div>
+ 
+            <!-- Input bar -->
+            <div id="chatInputBar" class="chat-input-bar hidden">
+              <textarea
+                id="chatInput"
+                class="chat-input"
+                placeholder="Ask anything about this report… (Enter to send, Shift+Enter for new line)"
+                rows="1"
+              ></textarea>
+              <button id="chatSendBtn" class="btn btn-primary chat-send-btn" onclick="sendChatMessage()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="22" y1="2" x2="11" y2="13"/>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+              </button>
+            </div>
+ 
+          </div>
+        </div>
+      </div>
+    </section>
+ 
   </main>
 
   <!-- Toast container -->

@@ -67,7 +67,8 @@ function toast(msg, type = 'info') {
 const PAGE_LABELS = {
   dashboard: 'Dashboard', collection: 'Data Collection',
   explorer: 'Product Explorer', analytics: 'Price Analytics',
-  insights: 'AI Insights', reports: 'Reports'
+  insights: 'AI Insights', reports: 'Reports',
+  chatbot: 'Report Chat'
 };
 
 function navigateTo(page) {
@@ -85,6 +86,7 @@ function navigateTo(page) {
   if (page === 'analytics') { loadPriceDrops(); loadAnalyticsData(); }
   if (page === 'reports') loadReports();
   if (page === 'explorer') { loadBrowse(); loadCompareSelects(); }
+  if (page === 'chatbot') loadChatReports();
 }
 
 document.querySelectorAll('.nav-item').forEach(item => {
@@ -786,3 +788,190 @@ function kpiMini(label, value, variant = '--blue') {
   await loadSidebarStats();
   loadDashboard();
 })();
+
+
+/* ── Chat State ─────────────────────────────────────────────────────── */
+let chatReports      = [];          // full list from /api/chat/reports
+let chatSelectedId   = null;        // currently selected report _id
+let chatSelectedLabel = '';         // human-readable name for banner
+let chatHistory      = [];          // [{ role, content }, ...]
+let chatIsLoading    = false;
+
+
+/* ── Load report list ───────────────────────────────────────────────── */
+async function loadChatReports() {
+  const list = $('chatReportList');
+  list.innerHTML = '<div class="chat-empty-state"><p>Loading…</p></div>';
+
+  try {
+    const data = await apiFetch('/api/chat/reports');
+    chatReports = data.reports || [];
+
+    if (!chatReports.length) {
+      list.innerHTML = '<div class="chat-empty-state"><p>No reports found.<br>Generate one from AI Insights.</p></div>';
+      return;
+    }
+
+    list.innerHTML = chatReports.map(r => `
+      <div
+        class="chat-report-item ${r.id === chatSelectedId ? 'selected' : ''}"
+        data-id="${r.id}"
+        data-label="${escapeHtml(r.label)}"
+        onclick="selectChatReport('${r.id}', this)"
+      >
+        <div class="chat-report-item-num">Report ${r.report_number}</div>
+        <div class="chat-report-item-name">
+          ${r.report_type === 'deep_analysis' ? 'Deep Analysis' : 'Quick Analysis'}
+          &nbsp;·&nbsp;${r.platform.toUpperCase()}
+        </div>
+        <div class="chat-report-item-meta">
+          ${r.category} &nbsp;·&nbsp; ${fmtDate(r.generated_at)}
+        </div>
+      </div>
+    `).join('');
+
+  } catch (e) {
+    list.innerHTML = `<div class="chat-empty-state"><p>Error: ${e.message}</p></div>`;
+    toast('Could not load reports', 'error');
+  }
+}
+
+
+/* ── Select a report ────────────────────────────────────────────────── */
+function selectChatReport(id, el) {
+  // If clicking the already-selected report, do nothing
+  if (id === chatSelectedId) return;
+
+  // Update selection highlight
+  document.querySelectorAll('.chat-report-item').forEach(i => i.classList.remove('selected'));
+  el.classList.add('selected');
+
+  chatSelectedId    = id;
+  chatSelectedLabel = el.dataset.label;
+
+  // Reset conversation for new report
+  chatHistory = [];
+  $('chatMessages').innerHTML = '';
+
+  // Show UI elements
+  $('chatActiveBanner').classList.remove('hidden');
+  $('chatActiveName').textContent   = chatSelectedLabel;
+  $('chatNoReport').classList.add('hidden');
+  $('chatMessages').classList.remove('hidden');
+  $('chatInputBar').classList.remove('hidden');
+  $('chatTyping').classList.add('hidden');
+
+  // Welcome message from assistant
+  appendMessage('assistant', `Report loaded! Ask me anything about it — you can summarise it, ask about pricing, recommendations, or any specific section.\n\nTry: "Is this report ke recommendations kya hain?" or "Summarize this report for me."`);
+
+  // Focus input
+  $('chatInput').focus();
+}
+
+
+/* ── Send a message ─────────────────────────────────────────────────── */
+async function sendChatMessage() {
+  if (chatIsLoading) return;
+
+  const input = $('chatInput');
+  const text  = input.value.trim();
+  if (!text) return;
+
+  if (!chatSelectedId) {
+    toast('Please select a report first', 'warning');
+    return;
+  }
+
+  // Show user message immediately
+  appendMessage('user', text);
+  chatHistory.push({ role: 'user', content: text });
+  input.value = '';
+  input.style.height = 'auto';
+
+  // Show typing indicator
+  chatIsLoading = true;
+  $('chatTyping').classList.remove('hidden');
+  $('chatSendBtn').disabled   = true;
+  $('chatMessages').scrollTop = $('chatMessages').scrollHeight;
+
+  try {
+    const data = await apiFetch('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        message  : text,
+        report_id: chatSelectedId,
+        history  : chatHistory.slice(-20),   // send last 20 messages for context
+      }),
+    });
+
+    const reply = data.reply || 'No response received.';
+    appendMessage('assistant', reply);
+    chatHistory.push({ role: 'assistant', content: reply });
+
+  } catch (e) {
+    appendMessage('assistant', `Sorry, something went wrong: ${e.message}`);
+    toast('Chat error: ' + e.message, 'error');
+  } finally {
+    chatIsLoading               = false;
+    $('chatTyping').classList.add('hidden');
+    $('chatSendBtn').disabled   = false;
+    $('chatMessages').scrollTop = $('chatMessages').scrollHeight;
+  }
+}
+
+
+/* ── Append a message bubble ────────────────────────────────────────── */
+function appendMessage(role, content) {
+  const container = $('chatMessages');
+  const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+  const div = document.createElement('div');
+  div.className = `chat-msg ${role}`;
+  div.innerHTML = `
+    <div class="chat-bubble">${escapeHtml(content)}</div>
+    <div class="chat-msg-time">${now}</div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+
+/* ── Clear conversation ─────────────────────────────────────────────── */
+function clearChat() {
+  chatHistory = [];
+  $('chatMessages').innerHTML = '';
+  appendMessage('assistant', 'Conversation cleared. Ask me anything about this report.');
+  $('chatInput').focus();
+}
+
+
+/* ── Auto-resize textarea ───────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  const input = $('chatInput');
+  if (!input) return;
+
+  // Enter to send, Shift+Enter for newline
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendChatMessage();
+    }
+  });
+
+  // Auto-resize
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+  });
+});
+
+
+/* ── Escape HTML helper (prevents XSS in chat bubbles) ──────────────── */
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
