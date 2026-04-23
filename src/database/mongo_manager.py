@@ -280,7 +280,9 @@ class MongoDBManager:
     def get_database_stats(self) -> Dict:
         """Get statistics about the database"""
         total_products = self.products.count_documents({})
-        total_reports = self.reports.count_documents({})
+        total_reports = self.reports.count_documents({
+            "report_type": {"$in": ["quick_analysis", "deep_analysis"]}
+        })
 
         platforms = self.products.distinct("platform")
         categories = self.products.distinct("category")
