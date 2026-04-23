@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -13,12 +12,9 @@
     rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
-
-  <!-- ═══════════════════════════════════════════════ SIDEBAR -->
+  <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
-
     <div class="sidebar-header">
       <div class="logo">
         <div class="logo-icon">
@@ -38,11 +34,8 @@
         </svg>
       </button>
     </div>
-
     <nav class="sidebar-nav">
-
       <div class="nav-section-label">Main</div>
-
       <a href="#" class="nav-item active" data-page="dashboard" id="nav-dashboard">
         <svg class="nav-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2">
@@ -53,7 +46,6 @@
         </svg>
         <span>Dashboard</span>
       </a>
-
       <a href="#" class="nav-item" data-page="collection" id="nav-collection">
         <svg class="nav-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2">
@@ -63,7 +55,6 @@
         </svg>
         <span>Data Collection</span>
       </a>
-
       <a href="#" class="nav-item" data-page="explorer" id="nav-explorer">
         <svg class="nav-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2">
@@ -72,9 +63,7 @@
         </svg>
         <span>Product Explorer</span>
       </a>
-
       <div class="nav-section-label" style="margin-top:6px">Analysis</div>
-
       <a href="#" class="nav-item" data-page="analytics" id="nav-analytics">
         <svg class="nav-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2">
@@ -84,7 +73,6 @@
         </svg>
         <span>Price Analytics</span>
       </a>
-
       <a href="#" class="nav-item" data-page="insights" id="nav-insights">
         <svg class="nav-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2">
@@ -93,7 +81,6 @@
         </svg>
         <span>AI Insights</span>
       </a>
-
       <a href="#" class="nav-item" data-page="reports" id="nav-reports">
         <svg class="nav-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2">
@@ -104,16 +91,14 @@
         </svg>
         <span>Reports</span>
       </a>
-
       <a href="#" class="nav-item" data-page="chatbot" id="nav-chatbot">
-        <svg class="nav-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+        <svg class="nav-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2">
+          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
         </svg>
         <span>Report Chat</span>
       </a>
-
     </nav>
-
     <div class="sidebar-footer">
       <div class="status-label-sm">System Status</div>
       <div class="status-chips">
@@ -135,12 +120,10 @@
         <span id="apiStatusText">Connecting…</span>
       </div>
     </div>
-
   </aside>
 
-  <!-- ═══════════════════════════════════════════════ MAIN -->
+  <!-- MAIN -->
   <main class="main-content" id="mainContent">
-
     <!-- Topbar -->
     <header class="topbar">
       <div class="topbar-left">
@@ -153,9 +136,8 @@
       </div>
     </header>
 
-    <!-- ═══════════════════════════════════ PAGE: DASHBOARD -->
+    <!-- PAGE: DASHBOARD -->
     <section class="page active" id="page-dashboard">
-
       <div class="kpi-grid">
         <div class="kpi-card kpi-card--blue">
           <div class="kpi-top">
@@ -170,7 +152,6 @@
           <div class="kpi-value" id="d-total-products">—</div>
           <div class="kpi-sub">Actively tracked</div>
         </div>
-
         <div class="kpi-card kpi-card--green">
           <div class="kpi-top">
             <div class="kpi-label">Price Drops</div>
@@ -184,7 +165,6 @@
           <div class="kpi-value" id="d-price-drops">—</div>
           <div class="kpi-sub">Opportunities found</div>
         </div>
-
         <div class="kpi-card kpi-card--amber">
           <div class="kpi-top">
             <div class="kpi-label">Price Increases</div>
@@ -198,7 +178,6 @@
           <div class="kpi-value" id="d-price-increases">—</div>
           <div class="kpi-sub">Trending upward</div>
         </div>
-
         <div class="kpi-card kpi-card--violet">
           <div class="kpi-top">
             <div class="kpi-label">Platforms</div>
@@ -213,7 +192,6 @@
           <div class="kpi-sub">Multi-platform</div>
         </div>
       </div>
-
       <!-- Quick Actions -->
       <div class="card mt-4">
         <div class="card-title">Quick Actions</div>
@@ -263,7 +241,6 @@
           </button>
         </div>
       </div>
-
       <!-- Recent Activity -->
       <div class="card mt-4">
         <div class="card-hd">
@@ -284,15 +261,13 @@
           </div>
         </div>
       </div>
-
     </section>
 
-    <!-- ═══════════════════════════════════ PAGE: DATA COLLECTION -->
+    <!-- PAGE: DATA COLLECTION -->
     <section class="page" id="page-collection">
       <div class="page-intro">
         <p class="page-intro-desc">Scrape product data from e-commerce platforms and save to the database</p>
       </div>
-
       <div class="card">
         <div class="card-title">Collection Settings</div>
         <div class="form-grid">
@@ -336,22 +311,19 @@
           </button>
         </div>
       </div>
-
       <div id="collectionResult" class="mt-4 hidden"></div>
     </section>
 
-    <!-- ═══════════════════════════════════ PAGE: PRODUCT EXPLORER -->
+    <!-- PAGE: PRODUCT EXPLORER -->
     <section class="page" id="page-explorer">
       <div class="page-intro">
         <p class="page-intro-desc">Search, browse and compare products across platforms</p>
       </div>
-
       <div class="tab-bar">
         <button class="tab-btn active" onclick="switchExplorerTab(this, 'tab-msearch')">Multi-Platform Search</button>
         <button class="tab-btn" onclick="switchExplorerTab(this, 'tab-browse')">Browse Database</button>
         <button class="tab-btn" onclick="switchExplorerTab(this, 'tab-compare')">Compare Products</button>
       </div>
-
       <!-- Multi-Platform Search -->
       <div class="tab-content active" id="tab-msearch">
         <div class="card">
@@ -394,7 +366,6 @@
         </div>
         <div id="multiSearchResult" class="mt-4"></div>
       </div>
-
       <!-- Browse Database -->
       <div class="tab-content" id="tab-browse">
         <div class="card">
@@ -422,7 +393,6 @@
         </div>
         <div id="browseResult" class="mt-4"></div>
       </div>
-
       <!-- Compare Products -->
       <div class="tab-content" id="tab-compare">
         <div class="card">
@@ -445,18 +415,16 @@
       </div>
     </section>
 
-    <!-- ═══════════════════════════════════ PAGE: PRICE ANALYTICS -->
+    <!-- PAGE: PRICE ANALYTICS -->
     <section class="page" id="page-analytics">
       <div class="page-intro">
         <p class="page-intro-desc">Track price changes and identify market opportunities</p>
       </div>
-
       <div class="tab-bar">
         <button class="tab-btn active" onclick="switchAnalyticsTab(this, 'tab-drops')">Price Drops</button>
         <button class="tab-btn" onclick="switchAnalyticsTab(this, 'tab-increases')">Price Increases</button>
         <button class="tab-btn" onclick="switchAnalyticsTab(this, 'tab-distribution')">Distribution</button>
       </div>
-
       <div class="tab-content active" id="tab-drops">
         <div class="card">
           <div class="card-hd">
@@ -470,14 +438,12 @@
         </div>
         <div id="priceDropsResult" class="mt-4"></div>
       </div>
-
       <div class="tab-content" id="tab-increases">
         <div class="card">
           <div class="card-title">Products with Price Increases</div>
         </div>
         <div id="priceIncreasesResult" class="mt-4"></div>
       </div>
-
       <div class="tab-content" id="tab-distribution">
         <div class="card">
           <div class="card-title">Price Distribution Overview</div>
@@ -486,12 +452,11 @@
       </div>
     </section>
 
-    <!-- ═══════════════════════════════════ PAGE: AI INSIGHTS -->
+    <!-- PAGE: AI INSIGHTS -->
     <section class="page" id="page-insights">
       <div class="page-intro">
         <p class="page-intro-desc">Generate intelligent market insights powered by Gemini AI</p>
       </div>
-
       <div class="card">
         <div class="card-title">Analysis Configuration</div>
         <div class="form-grid">
@@ -541,11 +506,10 @@
           </button>
         </div>
       </div>
-
       <div id="analysisResult" class="mt-4"></div>
     </section>
 
-    <!-- ═══════════════════════════════════ PAGE: REPORTS -->
+    <!-- PAGE: REPORTS -->
     <section class="page" id="page-reports">
       <div class="page-intro">
         <div style="display:flex;align-items:center;justify-content:space-between">
@@ -562,18 +526,14 @@
       <div id="reportsResult"></div>
     </section>
 
-
-  <section class="page" id="page-chatbot">
- 
-      <!-- Top bar -->
+    <!-- PAGE: REPORT CHAT -->
+    <section class="page" id="page-chatbot">
       <div class="page-intro">
         <p class="page-intro-desc">Select a report and chat with the AI about it in plain English or Hinglish.</p>
       </div>
- 
-      <!-- Two-column layout: report picker left, chat right -->
       <div class="chat-layout">
- 
-        <!-- ── LEFT: Report Selector Panel ───────────────────────── -->
+
+        <!-- LEFT: Report Selector Panel -->
         <aside class="chat-sidebar-panel">
           <div class="card" style="height:100%">
             <div class="card-hd">
@@ -586,17 +546,15 @@
               </button>
             </div>
             <div id="chatReportList" class="chat-report-list">
-              <div class="chat-empty-state">
-                <p>Loading reports…</p>
-              </div>
+              <div class="chat-empty-state"><p>Loading reports…</p></div>
             </div>
           </div>
         </aside>
- 
-        <!-- ── RIGHT: Chat Window ─────────────────────────────────── -->
+
+        <!-- RIGHT: Chat Window -->
         <div class="chat-main">
           <div class="card chat-card">
- 
+
             <!-- Active report banner -->
             <div id="chatActiveBanner" class="chat-active-banner hidden">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -613,25 +571,26 @@
                 Clear
               </button>
             </div>
- 
+
             <!-- No report selected state -->
             <div id="chatNoReport" class="chat-no-report">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text-3)">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                style="color:var(--text-3)">
                 <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
               </svg>
               <p>Select a report from the left panel to start chatting</p>
             </div>
- 
+
             <!-- Messages area -->
             <div id="chatMessages" class="chat-messages hidden"></div>
- 
+
             <!-- Typing indicator -->
             <div id="chatTyping" class="chat-typing hidden">
               <div class="typing-dot"></div>
               <div class="typing-dot"></div>
               <div class="typing-dot"></div>
             </div>
- 
+
             <!-- Input bar -->
             <div id="chatInputBar" class="chat-input-bar hidden">
               <textarea
@@ -647,18 +606,16 @@
                 </svg>
               </button>
             </div>
- 
+
           </div>
         </div>
       </div>
     </section>
- 
+
   </main>
 
   <!-- Toast container -->
   <div id="toastContainer" class="toast-container"></div>
-
   <script src="app.js"></script>
 </body>
-
 </html>

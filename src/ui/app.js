@@ -1,35 +1,28 @@
-/* ═══════════════════════════════════════════════════════════════════
-   Retail Intelligence Platform — Frontend Logic v2
-   Zero-emoji, class-aligned with style.css v2
-   ═══════════════════════════════════════════════════════════════════ */
+// Retail Intelligence Platform — Frontend Logic v2
+// Zero-emoji, class-aligned with style.css v2
 
-const API = '';   // same origin — Flask serves index.html
+const API = '';  // same origin — Flask serves index.html
 
-// ── State ─────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────
 let allProducts = [];
 let currentAnalysis = null;
 let currentAnalysisLabel = '';
 
-// ── DOM helpers ────────────────────────────────────────────────────────
+// ── DOM helpers ───────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
-
 const fmt = n => n == null ? '—' : Number(n).toLocaleString('en-IN');
-
 const fmtPrice = n =>
   n == null ? '—' : '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 });
-
 const fmtDate = s => {
   if (!s) return '—';
   const d = new Date(s);
   return isNaN(d) ? s : d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 };
-
 const trendBadge = t => {
   const map = { down: 'b-green', up: 'b-rose', stable: 'b-muted' };
   const label = { down: 'Drop', up: 'Rise', stable: 'Stable' };
   return `<span class="badge ${map[t] || 'b-muted'}">${label[t] || t}</span>`;
 };
-
 const platformBadge = p => {
   const cl = p === 'AMAZON'   ? 'b-amber'  :
              p === 'FLIPKART' ? 'b-blue'   :
@@ -38,7 +31,7 @@ const platformBadge = p => {
   return `<span class="badge ${cl}">${p}</span>`;
 };
 
-// ── Clock ─────────────────────────────────────────────────────────────
+// ── Clock ──────────────────────────────────────────────────────────────────
 (function clock() {
   const el = $('topbarTime');
   if (!el) return;
@@ -51,7 +44,7 @@ const platformBadge = p => {
   setInterval(tick, 30000);
 })();
 
-// ── Toast ─────────────────────────────────────────────────────────────
+// ── Toast ──────────────────────────────────────────────────────────────────
 function toast(msg, type = 'info') {
   const el = document.createElement('div');
   el.className = `toast t-${type}`;
@@ -63,7 +56,7 @@ function toast(msg, type = 'info') {
   }, 3200);
 }
 
-// ── Navigation ─────────────────────────────────────────────────────────
+// ── Navigation ─────────────────────────────────────────────────────────────
 const PAGE_LABELS = {
   dashboard: 'Dashboard', collection: 'Data Collection',
   explorer: 'Product Explorer', analytics: 'Price Analytics',
@@ -74,14 +67,11 @@ const PAGE_LABELS = {
 function navigateTo(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-
   const pg = $(`page-${page}`);
   const nav = $(`nav-${page}`);
   if (pg) pg.classList.add('active');
   if (nav) nav.classList.add('active');
-
   $('pageTitle').textContent = PAGE_LABELS[page] || page;
-
   if (page === 'dashboard') loadDashboard();
   if (page === 'analytics') { loadPriceDrops(); loadAnalyticsData(); }
   if (page === 'reports') loadReports();
@@ -93,7 +83,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', e => { e.preventDefault(); navigateTo(item.dataset.page); });
 });
 
-// ── API ────────────────────────────────────────────────────────────────
+// ── API ────────────────────────────────────────────────────────────────────
 async function apiFetch(path, opts = {}) {
   const res = await fetch(API + path, {
     headers: { 'Content-Type': 'application/json' },
@@ -106,7 +96,7 @@ async function apiFetch(path, opts = {}) {
   return res.json();
 }
 
-// ── Sidebar / health ───────────────────────────────────────────────────
+// ── Sidebar / health ───────────────────────────────────────────────────────
 async function loadSidebarStats() {
   try {
     const s = await apiFetch('/api/stats');
@@ -121,28 +111,24 @@ async function loadSidebarStats() {
   }
 }
 
-// ── Dashboard ──────────────────────────────────────────────────────────
+// ── Dashboard ──────────────────────────────────────────────────────────────
 async function loadDashboard() {
   try {
     const [stats, recent] = await Promise.all([
       apiFetch('/api/stats'),
       apiFetch('/api/dashboard/recent?limit=15'),
     ]);
-
     $('d-total-products').textContent = fmt(stats.total_products);
     $('d-price-drops').textContent = fmt(stats.price_drops);
     $('d-price-increases').textContent = fmt(stats.price_increases);
     $('d-platforms').textContent = fmt(4);
-
     $('stat-products').textContent = fmt(stats.total_products);
     $('stat-platforms').textContent = fmt(4);
     $('stat-reports').textContent = fmt(stats.total_reports);
-
     if (!recent.length) {
       $('recentActivity').innerHTML = notice('info', 'No activity yet. Start by collecting data from the Data Collection page.');
       return;
     }
-
     $('recentActivity').innerHTML = `
       <div class="tbl-wrap">
         <table>
@@ -163,7 +149,7 @@ async function loadDashboard() {
   }
 }
 
-// ── Data Collection ────────────────────────────────────────────────────
+// ── Data Collection ────────────────────────────────────────────────────────
 async function startCollection() {
   const query = $('col-query').value.trim();
   const platform = $('col-platform').value;
@@ -171,25 +157,19 @@ async function startCollection() {
   const max = parseInt($('col-max').value) || 10;
   const btn = $('btnCollect');
   const result = $('collectionResult');
-
   if (!query) { toast('Enter a search query', 'warn'); return; }
-
   btn.disabled = true;
   btn.textContent = 'Collecting…';
   result.className = '';
   result.innerHTML = spinner(`Scraping ${platform.toUpperCase()} for "${query}"…`);
-
   try {
     const data = await apiFetch('/api/collect', {
       method: 'POST',
       body: JSON.stringify({ search_query: query, platform, category, max_results: max }),
     });
-
     if (data.error) throw new Error(data.error);
-
     const products = data.products || [];
     const stats = data.stats || {};
-
     result.innerHTML = `
       ${notice('success', `Collection complete — ${data.total} products processed`)}
       <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">
@@ -212,7 +192,6 @@ async function startCollection() {
             </table>
           </div>
         </div>` : ''}`;
-
     loadSidebarStats();
     toast('Data collected successfully', 'success');
   } catch (e) {
@@ -224,7 +203,7 @@ async function startCollection() {
   }
 }
 
-// ── Explorer · Multi-search ────────────────────────────────────────────
+// ── Explorer — Multi-search ────────────────────────────────────────────────
 async function runMultiSearch() {
   const query = $('ms-query').value.trim();
   const max = parseInt($('ms-max').value) || 5;
@@ -236,23 +215,18 @@ async function runMultiSearch() {
   if ($('ms-ajio')?.checked) platforms.push('ajio');
   const btn = $('btnMultiSearch');
   const result = $('multiSearchResult');
-
   if (!query) { toast('Enter a search query', 'warn'); return; }
   if (!platforms.length) { toast('Select at least one platform', 'warn'); return; }
-
   btn.disabled = true;
   btn.textContent = 'Searching…';
   result.innerHTML = spinner('Searching ' + platforms.join(' & ') + '…');
-
   try {
     const data = await apiFetch('/api/products/search', {
       method: 'POST',
       body: JSON.stringify({ search_query: query, max_results: max, category, platforms }),
     });
-
     const sum = data.summary || {};
     let html = notice('success', `Found ${sum.total || 0} products across ${sum.platforms_searched || 0} platform(s)`);
-
     if (sum.min_price != null) {
       html += `<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">
         ${kpiMini('Lowest Price', fmtPrice(sum.min_price), '--green')}
@@ -260,7 +234,6 @@ async function runMultiSearch() {
         ${kpiMini('Average Price', fmtPrice(sum.avg_price), '--blue')}
       </div>`;
     }
-
     for (const [pl, products] of Object.entries(data.results || {})) {
       html += `<div class="card mt-3">
         <div class="card-title">${pl.toUpperCase()} — ${products.length} results</div>
@@ -276,11 +249,9 @@ async function runMultiSearch() {
         </div>
       </div>`;
     }
-
     for (const [pl, err] of Object.entries(data.errors || {})) {
       html += notice('error', `${pl.toUpperCase()} search failed: ${err}`);
     }
-
     result.innerHTML = html;
     loadSidebarStats();
     toast('Search complete', 'success');
@@ -293,23 +264,20 @@ async function runMultiSearch() {
   }
 }
 
-// ── Explorer · Browse ──────────────────────────────────────────────────
+// ── Explorer — Browse ──────────────────────────────────────────────────────
 async function loadBrowse() {
   const platform = $('br-platform').value;
   const view = $('br-view').value;
   const result = $('browseResult');
   result.innerHTML = spinner('Loading products…');
-
   try {
     const products = await apiFetch(`/api/products?platform=${platform}&view=${view}&limit=100`);
     allProducts = products;
     updateCompareSelects();
-
     if (!products.length) {
       result.innerHTML = notice('info', 'No products found for the selected filters.');
       return;
     }
-
     result.innerHTML = `
       <div class="card">
         <div class="card-title">Results — ${products.length} products</div>
@@ -333,7 +301,7 @@ async function loadBrowse() {
   }
 }
 
-// ── Explorer · Compare Selects ─────────────────────────────────────────
+// ── Explorer — Compare Selects ─────────────────────────────────────────────
 async function loadCompareSelects() {
   try {
     if (!allProducts.length) allProducts = await apiFetch('/api/products?limit=200');
@@ -356,10 +324,8 @@ function compareProducts() {
   const p1 = allProducts[i1];
   const p2 = allProducts[i2];
   const result = $('compareResult');
-
   if (!p1 || !p2) { result.innerHTML = notice('warn', 'Products not loaded'); return; }
   if (i1 === i2) { result.innerHTML = notice('warn', 'Select two different products'); return; }
-
   const price1 = p1.current_price, price2 = p2.current_price;
   let priceSummary = '';
   if (price1 && price2) {
@@ -374,7 +340,6 @@ function compareProducts() {
       </div>
       ${notice('info', `${cheaper} is ${fmtPrice(diff)} cheaper (${pct}% saving)`)}`;
   }
-
   const rows = [
     ['Platform', (p1.platform || '?').toUpperCase(), (p2.platform || '?').toUpperCase()],
     ['Current Price', fmtPrice(price1), fmtPrice(price2)],
@@ -383,7 +348,6 @@ function compareProducts() {
     ['Times Scraped', p1.times_scraped || 0, p2.times_scraped || 0],
     ['First Seen', fmtDate(p1.first_seen), fmtDate(p2.first_seen)],
   ];
-
   result.innerHTML = `<div class="card">
     <div class="card-title">Comparison</div>
     <div class="tbl-wrap">
@@ -399,7 +363,7 @@ function compareProducts() {
   </div>`;
 }
 
-// ── Explorer · Tab Switch ──────────────────────────────────────────────
+// ── Explorer — Tab Switch ──────────────────────────────────────────────────
 function switchExplorerTab(btn, targetId) {
   document.querySelectorAll('#page-explorer .tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('#page-explorer .tab-content').forEach(t => t.classList.remove('active'));
@@ -409,7 +373,7 @@ function switchExplorerTab(btn, targetId) {
   if (targetId === 'tab-compare') loadCompareSelects();
 }
 
-// ── Analytics · Tab Switch ─────────────────────────────────────────────
+// ── Analytics — Tab Switch ─────────────────────────────────────────────────
 function switchAnalyticsTab(btn, targetId) {
   document.querySelectorAll('#page-analytics .tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('#page-analytics .tab-content').forEach(t => t.classList.remove('active'));
@@ -420,22 +384,19 @@ function switchAnalyticsTab(btn, targetId) {
   if (targetId === 'tab-distribution') loadDistribution();
 }
 
-// ── Analytics · Price Drops ────────────────────────────────────────────
+// ── Analytics — Price Drops ────────────────────────────────────────────────
 async function loadPriceDrops() {
   const minDrop = parseFloat($('drop-min').value) || 10;
   const result = $('priceDropsResult');
   result.innerHTML = spinner('Loading price drops…');
-
   try {
     const products = await apiFetch(`/api/products/price-drops?min_percent=${minDrop}`);
-
     if (!products.length) {
       result.innerHTML = notice('info', `No products with >${minDrop}% price drop found.`);
       return;
     }
-
     result.innerHTML = `
-      ${notice('success', `${products.length} opportunity${products.length !== 1 ? 'ies' : 'y'} found`)}
+      ${notice('success', `${products.length} opportunit${products.length !== 1 ? 'ies' : 'y'} found`)}
       <div class="drop-list">
         ${products.slice(0, 25).map(p => {
       const savings = (p.highest_price || 0) - (p.current_price || 0);
@@ -468,16 +429,13 @@ async function loadPriceIncreases() {
   const result = $('priceIncreasesResult');
   if (!result) return;
   result.innerHTML = spinner('Loading…');
-
   try {
     const data = await apiFetch('/api/products/price-analytics');
     const products = data.price_increases || [];
-
     if (!products.length) {
       result.innerHTML = notice('info', 'No price increases detected.');
       return;
     }
-
     result.innerHTML = `
       ${notice('warn', `${data.price_increases_count} product${data.price_increases_count !== 1 ? 's' : ''} with price increases`)}
       <div class="card">
@@ -503,26 +461,20 @@ async function loadDistribution() {
   const result = $('priceDistributionResult');
   if (!result) return;
   result.innerHTML = spinner('Loading…');
-
   try {
     const data = await apiFetch('/api/products/price-analytics');
     const prices = data.price_distribution || [];
-
     if (!prices.length) {
       result.innerHTML = notice('info', 'No pricing data available.');
       return;
     }
-
-    // Bucket into ₹2k ranges
     const buckets = {};
     prices.forEach(p => {
       const key = Math.floor(p / 2000) * 2000;
-      const label = `₹${fmt(key)} – ₹${fmt(key + 2000)}`;
+      const label = `₹${fmt(key)}–₹${fmt(key + 2000)}`;
       buckets[label] = (buckets[label] || 0) + 1;
     });
-
     const maxBucket = Math.max(...Object.values(buckets));
-
     result.innerHTML = `
       <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
         ${kpiMini('Average Price', fmtPrice(data.avg_price), '--blue')}
@@ -545,33 +497,27 @@ async function loadDistribution() {
   }
 }
 
-// ── AI Insights ────────────────────────────────────────────────────────
+// ── AI Insights ────────────────────────────────────────────────────────────
 async function runAnalysis() {
   const type = document.querySelector('input[name="analysis-type"]:checked')?.value || 'quick';
   const platform = $('ai-platform').value;
   const category = $('ai-category').value;
   const btn = $('btnAnalyze');
   const result = $('analysisResult');
-
   btn.disabled = true;
   btn.textContent = type === 'deep' ? 'Running deep analysis…' : 'Analyzing…';
-
   result.innerHTML = spinner(type === 'deep'
-    ? 'Multi-agent deep analysis in progress — this may take 5–6 minutes'
+    ? 'Multi-agent deep analysis in progress — this may take 5–6 minutes…'
     : 'Generating AI insights…');
-
   try {
     const endpoint = type === 'deep' ? '/api/analysis/deep' : '/api/analysis/quick';
     const data = await apiFetch(endpoint, {
       method: 'POST',
       body: JSON.stringify({ platform, category }),
     });
-
     if (data.error) throw new Error(data.error);
-
     currentAnalysis = data.analysis;
     currentAnalysisLabel = `${platform.toUpperCase()} — ${category.toUpperCase()}`;
-
     result.innerHTML = renderAnalysis(data.analysis, type, data.products_analyzed, platform, category);
     toast('Analysis complete', 'success');
   } catch (e) {
@@ -590,24 +536,20 @@ function renderAnalysis(analysis, type, productsAnalyzed, platform, category) {
     const recs = analysis.recommendations || [];
     const topP = analysis.top_rated_product || {};
     const bestV = analysis.best_value_product || {};
-
     return `<div class="analysis-wrap">
-      <div class="analysis-scope">${platform.toUpperCase()} · ${category.toUpperCase()} · ${productsAnalyzed} products</div>
-
+      <div class="analysis-scope">${platform.toUpperCase()} — ${category.toUpperCase()} — ${productsAnalyzed} products</div>
       <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
         ${kpiMini('Products Analysed', productsAnalyzed, '--blue')}
         ${kpiMini('Avg Price', fmtPrice(pr.average), '--violet')}
         ${kpiMini('Price Range', `${fmtPrice(pr.min)} – ${fmtPrice(pr.max)}`, '--amber')}
       </div>
-
       ${topP.title ? `<div class="mb-4">
         <div class="card-title" style="margin-bottom:8px">Top Rated Product</div>
         <div style="padding:12px 14px;background:var(--violet-s);border:1px solid rgba(124,58,237,.15);border-radius:var(--r-md);font-size:13px">
           <strong>${topP.title}</strong>
-          ${topP.rating ? `<span class="dimmed" style="margin-left:10px">${topP.rating} stars · ${fmtPrice(topP.price)}</span>` : ''}
+          ${topP.rating ? `<span class="dimmed" style="margin-left:10px">${topP.rating} stars — ${fmtPrice(topP.price)}</span>` : ''}
         </div>
       </div>` : ''}
-
       ${bestV.title ? `<div class="mb-4">
         <div class="card-title" style="margin-bottom:8px">Best Value</div>
         <div style="padding:12px 14px;background:var(--green-s);border:1px solid rgba(5,150,105,.15);border-radius:var(--r-md);font-size:13px">
@@ -615,17 +557,14 @@ function renderAnalysis(analysis, type, productsAnalyzed, platform, category) {
           ${bestV.reason ? `<div class="dimmed" style="margin-top:4px;font-size:12px">${bestV.reason}</div>` : ''}
         </div>
       </div>` : ''}
-
       ${insights.length ? `<div class="mb-4">
         <div class="card-title" style="margin-bottom:10px">Key Insights</div>
         <ul class="insight-list">${insights.map(i => `<li>${i}</li>`).join('')}</ul>
       </div>` : ''}
-
       ${recs.length ? `<div class="mb-4">
         <div class="card-title" style="margin-bottom:10px">Recommendations</div>
         <ul class="rec-list">${recs.map(r => `<li>${r}</li>`).join('')}</ul>
       </div>` : ''}
-
       <hr class="divider" />
       <button class="btn btn-secondary" onclick="downloadAnalysisPDF()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -633,21 +572,17 @@ function renderAnalysis(analysis, type, productsAnalyzed, platform, category) {
       </button>
     </div>`;
   }
-
   // Deep analysis
   const finalReport = analysis.final_report || 'No report generated';
   const details = analysis.detailed_results || [];
-
   return `<div class="analysis-wrap">
-    <div class="analysis-scope">${platform.toUpperCase()} · ${category.toUpperCase()} · ${productsAnalyzed} products · ${analysis.tasks_completed || 0} tasks</div>
-
+    <div class="analysis-scope">${platform.toUpperCase()} — ${category.toUpperCase()} — ${productsAnalyzed} products — ${analysis.tasks_completed || 0} tasks</div>
     <div class="mb-4">
       <div class="card-title" style="margin-bottom:10px">Executive Report</div>
       <div style="font-size:13px;color:var(--text-2);line-height:1.7;padding:16px;background:var(--bg-raised);border-radius:var(--r-md);border:1px solid var(--border)">
         ${finalReport.replace(/\n/g, '<br/>')}
       </div>
     </div>
-
     ${details.length ? `<div>
       <div class="card-title" style="margin-bottom:10px">Agent Outputs</div>
       ${details.map(d => `<div class="expander" onclick="toggleExpander(this)">
@@ -658,7 +593,6 @@ function renderAnalysis(analysis, type, productsAnalyzed, platform, category) {
         <div class="expander-bd">${(d.output || '').replace(/\n/g, '<br/>')}</div>
       </div>`).join('')}
     </div>` : ''}
-
     <hr class="divider" />
     <p class="dimmed" style="font-size:12px">Deep analysis reports are automatically saved to the database.</p>
   </div>`;
@@ -684,19 +618,16 @@ async function downloadAnalysisPDF() {
   }
 }
 
-// ── Reports ────────────────────────────────────────────────────────────
+// ── Reports ────────────────────────────────────────────────────────────────
 async function loadReports() {
   const result = $('reportsResult');
   result.innerHTML = spinner('Loading reports…');
-
   try {
     const reports = await apiFetch('/api/reports');
-
     if (!reports.length) {
       result.innerHTML = notice('info', 'No reports found. Generate one from the AI Insights page.');
       return;
     }
-
     result.innerHTML = `
       ${notice('info', `${reports.length} report${reports.length !== 1 ? 's' : ''} in database`)}
       ${reports.slice(0, 30).map(r => {
@@ -706,13 +637,12 @@ async function loadReports() {
       const date = fmtDate(r.generated_at);
       const cnt = r.products_analyzed || 0;
       const rid = r._id;
-
       let summary = '';
       const an = r.analysis || {};
       if (r.report_type === 'quick_analysis' && an.price_range) {
         const pr = an.price_range;
         summary = `<div class="dimmed" style="font-size:12px;margin-top:8px">
-            Price range: ${fmtPrice(pr.min)} — ${fmtPrice(pr.max)} · Avg: ${fmtPrice(pr.average)}
+            Price range: ${fmtPrice(pr.min)} – ${fmtPrice(pr.max)} — Avg: ${fmtPrice(pr.average)}
           </div>`;
         if ((an.price_insights || []).length) {
           summary += `<ul style="margin-top:6px;font-size:12px;color:var(--text-2);padding-left:16px">
@@ -722,17 +652,16 @@ async function loadReports() {
       } else if (r.report_type === 'deep_analysis' && an.final_report) {
         summary = `<div class="dimmed" style="font-size:12px;margin-top:8px">${(an.final_report || '').slice(0, 220)}…</div>`;
       }
-
       return `<div class="expander" onclick="toggleExpander(this)">
           <div class="expander-hd">
-            <span>${rtype} &mdash; ${pl} · ${cat} · ${cnt} products · ${date}</span>
+            <span>${rtype} — ${pl} — ${cat} — ${cnt} products — ${date}</span>
             <svg class="expander-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
           <div class="expander-bd" onclick="event.stopPropagation()">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px">
               <div>
                 <div class="strong">${rtype}</div>
-                <div class="dimmed" style="font-size:12px">Platform: ${pl} · Category: ${cat} · ${cnt} products</div>
+                <div class="dimmed" style="font-size:12px">Platform: ${pl} — Category: ${cat} — ${cnt} products</div>
                 ${summary}
               </div>
               ${rid ? `<button class="btn btn-secondary btn-sm" style="flex-shrink:0" onclick="downloadReport('${rid}')">
@@ -763,19 +692,17 @@ async function downloadReport(rid) {
   }
 }
 
-// ── Expander ───────────────────────────────────────────────────────────
+// ── Expander ───────────────────────────────────────────────────────────────
 function toggleExpander(el) { el.classList.toggle('open'); }
 
-// ── Render helpers ─────────────────────────────────────────────────────
+// ── Render helpers ─────────────────────────────────────────────────────────
 function spinner(msg = 'Loading…') {
   return `<div class="spinner-wrap"><div class="spinner"></div><span>${msg}</span></div>`;
 }
-
 function notice(type, msg) {
   const n = { info: 'n-info', success: 'n-success', warn: 'n-warn', error: 'n-error' };
   return `<div class="notice ${n[type] || 'n-info'}">${msg}</div>`;
 }
-
 function kpiMini(label, value, variant = '--blue') {
   return `<div class="kpi-card kpi-card${variant}">
     <div class="kpi-top"><div class="kpi-label">${label}</div></div>
@@ -783,35 +710,28 @@ function kpiMini(label, value, variant = '--blue') {
   </div>`;
 }
 
-// ── Init ───────────────────────────────────────────────────────────────
-(async function init() {
-  await loadSidebarStats();
-  loadDashboard();
-})();
+// ══════════════════════════════════════════════════════════════════════════════
+//  REPORT CHAT TAB
+// ══════════════════════════════════════════════════════════════════════════════
 
+// ── Chat State ─────────────────────────────────────────────────────────────
+let chatReports       = [];
+let chatSelectedId    = null;
+let chatSelectedLabel = '';
+let chatHistory       = [];
+let chatIsLoading     = false;
 
-/* ── Chat State ─────────────────────────────────────────────────────── */
-let chatReports      = [];          // full list from /api/chat/reports
-let chatSelectedId   = null;        // currently selected report _id
-let chatSelectedLabel = '';         // human-readable name for banner
-let chatHistory      = [];          // [{ role, content }, ...]
-let chatIsLoading    = false;
-
-
-/* ── Load report list ───────────────────────────────────────────────── */
+// ── Load report list ───────────────────────────────────────────────────────
 async function loadChatReports() {
   const list = $('chatReportList');
   list.innerHTML = '<div class="chat-empty-state"><p>Loading…</p></div>';
-
   try {
     const data = await apiFetch('/api/chat/reports');
     chatReports = data.reports || [];
-
     if (!chatReports.length) {
       list.innerHTML = '<div class="chat-empty-state"><p>No reports found.<br>Generate one from AI Insights.</p></div>';
       return;
     }
-
     list.innerHTML = chatReports.map(r => `
       <div
         class="chat-report-item ${r.id === chatSelectedId ? 'selected' : ''}"
@@ -829,85 +749,58 @@ async function loadChatReports() {
         </div>
       </div>
     `).join('');
-
   } catch (e) {
     list.innerHTML = `<div class="chat-empty-state"><p>Error: ${e.message}</p></div>`;
     toast('Could not load reports', 'error');
   }
 }
 
-
-/* ── Select a report ────────────────────────────────────────────────── */
+// ── Select a report ────────────────────────────────────────────────────────
 function selectChatReport(id, el) {
-  // If clicking the already-selected report, do nothing
   if (id === chatSelectedId) return;
-
-  // Update selection highlight
   document.querySelectorAll('.chat-report-item').forEach(i => i.classList.remove('selected'));
   el.classList.add('selected');
-
   chatSelectedId    = id;
   chatSelectedLabel = el.dataset.label;
-
-  // Reset conversation for new report
   chatHistory = [];
   $('chatMessages').innerHTML = '';
-
-  // Show UI elements
   $('chatActiveBanner').classList.remove('hidden');
-  $('chatActiveName').textContent   = chatSelectedLabel;
+  $('chatActiveName').textContent = chatSelectedLabel;
   $('chatNoReport').classList.add('hidden');
   $('chatMessages').classList.remove('hidden');
   $('chatInputBar').classList.remove('hidden');
   $('chatTyping').classList.add('hidden');
-
-  // Welcome message from assistant
-  appendMessage('assistant', `Report loaded! Ask me anything about it — you can summarise it, ask about pricing, recommendations, or any specific section.\n\nTry: "Is this report ke recommendations kya hain?" or "Summarize this report for me."`);
-
-  // Focus input
+  appendMessage('assistant', `Report loaded! Ask me anything about it.\n\nTry: *"Is this report ke recommendations kya hain?"* or *"Summarize this report for me."*`);
   $('chatInput').focus();
 }
 
-
-/* ── Send a message ─────────────────────────────────────────────────── */
+// ── Send a message ─────────────────────────────────────────────────────────
 async function sendChatMessage() {
   if (chatIsLoading) return;
-
   const input = $('chatInput');
   const text  = input.value.trim();
   if (!text) return;
-
-  if (!chatSelectedId) {
-    toast('Please select a report first', 'warning');
-    return;
-  }
-
-  // Show user message immediately
+  if (!chatSelectedId) { toast('Please select a report first', 'warning'); return; }
   appendMessage('user', text);
   chatHistory.push({ role: 'user', content: text });
   input.value = '';
   input.style.height = 'auto';
-
-  // Show typing indicator
   chatIsLoading = true;
   $('chatTyping').classList.remove('hidden');
   $('chatSendBtn').disabled   = true;
   $('chatMessages').scrollTop = $('chatMessages').scrollHeight;
-
   try {
     const data = await apiFetch('/api/chat', {
       method: 'POST',
       body: JSON.stringify({
         message  : text,
         report_id: chatSelectedId,
-        history  : chatHistory.slice(-20),   // send last 20 messages for context
+        history  : chatHistory.slice(-20),
       }),
     });
-
     const reply = data.reply || 'No response received.';
     appendMessage('assistant', reply);
     chatHistory.push({ role: 'assistant', content: reply });
-
   } catch (e) {
     appendMessage('assistant', `Sorry, something went wrong: ${e.message}`);
     toast('Chat error: ' + e.message, 'error');
@@ -919,24 +812,22 @@ async function sendChatMessage() {
   }
 }
 
-
-/* ── Append a message bubble ────────────────────────────────────────── */
+// ── Append a message bubble ────────────────────────────────────────────────
 function appendMessage(role, content) {
   const container = $('chatMessages');
   const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-
   const div = document.createElement('div');
   div.className = `chat-msg ${role}`;
+  const bodyHtml = role === 'assistant' ? renderMarkdown(content) : escapeHtml(content);
   div.innerHTML = `
-    <div class="chat-bubble">${escapeHtml(content)}</div>
+    <div class="chat-bubble">${bodyHtml}</div>
     <div class="chat-msg-time">${now}</div>
   `;
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
 }
 
-
-/* ── Clear conversation ─────────────────────────────────────────────── */
+// ── Clear conversation ─────────────────────────────────────────────────────
 function clearChat() {
   chatHistory = [];
   $('chatMessages').innerHTML = '';
@@ -944,29 +835,23 @@ function clearChat() {
   $('chatInput').focus();
 }
 
-
-/* ── Auto-resize textarea ───────────────────────────────────────────── */
+// ── Auto-resize textarea + Enter to send ──────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   const input = $('chatInput');
   if (!input) return;
-
-  // Enter to send, Shift+Enter for newline
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendChatMessage();
     }
   });
-
-  // Auto-resize
   input.addEventListener('input', () => {
     input.style.height = 'auto';
     input.style.height = Math.min(input.scrollHeight, 120) + 'px';
   });
 });
 
-
-/* ── Escape HTML helper (prevents XSS in chat bubbles) ──────────────── */
+// ── Escape HTML (XSS safe for user bubbles) ────────────────────────────────
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;')
@@ -975,3 +860,66 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+// ── Lightweight Markdown renderer for assistant bubbles ───────────────────
+function renderMarkdown(raw) {
+  let html = escapeHtml(raw);
+
+  // Code blocks (``` ... ```) — before inline rules
+  html = html.replace(/```[\w]*\n?([\s\S]*?)```/g, (_, code) =>
+    `<pre style="background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;overflow-x:auto;font-size:0.8rem;line-height:1.5;margin:6px 0;"><code>${code.trim()}</code></pre>`
+  );
+
+  // Headings
+  html = html.replace(/^######\s(.+)$/gm, '<h6 style="font-size:0.8rem;font-weight:600;margin:8px 0 4px;">$1</h6>');
+  html = html.replace(/^#####\s(.+)$/gm,  '<h5 style="font-size:0.82rem;font-weight:600;margin:8px 0 4px;">$1</h5>');
+  html = html.replace(/^####\s(.+)$/gm,   '<h4 style="font-size:0.85rem;font-weight:600;margin:8px 0 4px;">$1</h4>');
+  html = html.replace(/^###\s(.+)$/gm,    '<h3 style="font-size:0.9rem;font-weight:600;margin:10px 0 4px;">$1</h3>');
+  html = html.replace(/^##\s(.+)$/gm,     '<h2 style="font-size:0.95rem;font-weight:700;margin:10px 0 4px;">$1</h2>');
+  html = html.replace(/^#\s(.+)$/gm,      '<h1 style="font-size:1rem;font-weight:700;margin:10px 0 4px;">$1</h1>');
+
+  // Horizontal rule
+  html = html.replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">');
+
+  // Blockquote
+  html = html.replace(/^&gt;\s(.+)$/gm,
+    '<blockquote style="border-left:3px solid var(--blue);padding-left:10px;margin:6px 0;color:var(--text-2);font-style:italic;">$1</blockquote>'
+  );
+
+  // Bold + Italic
+  html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  html = html.replace(/\*\*(.+?)\*\*/g,     '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g,         '<em>$1</em>');
+  html = html.replace(/__(.+?)__/g,         '<strong>$1</strong>');
+  html = html.replace(/_(.+?)_/g,           '<em>$1</em>');
+
+  // Inline code
+  html = html.replace(/`([^`]+)`/g,
+    '<code style="background:var(--bg-sunken);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:0.82em;">$1</code>'
+  );
+
+  // Unordered lists
+  html = html.replace(/^[\*\-•]\s+(.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>[\s\S]*?<\/li>)(\s*(?!<li>))/g, (match, items) =>
+    `<ul style="margin:6px 0 6px 18px;padding:0;list-style:disc;">${items}</ul>`
+  );
+
+  // Ordered lists
+  html = html.replace(/^\d+\.\s+(.+)$/gm, '<oli>$1</oli>');
+  html = html.replace(/(<oli>[\s\S]*?<\/oli>)(\s*(?!<oli>))/g, (match, items) =>
+    `<ol style="margin:6px 0 6px 18px;padding:0;">${items.replace(/<oli>/g,'<li>').replace(/<\/oli>/g,'</li>')}</ol>`
+  );
+
+  // Paragraph breaks and line breaks
+  html = html.replace(/\n\n+/g, '</p><p style="margin:6px 0;">');
+  html = html.replace(/\n/g, '<br>');
+  html = `<p style="margin:0;">${html}</p>`;
+
+  return html;
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+(async function init() {
+  await loadSidebarStats();
+  loadDashboard();
+})();
