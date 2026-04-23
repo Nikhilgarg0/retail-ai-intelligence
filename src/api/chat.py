@@ -175,14 +175,16 @@ def list_reports():
                 # Only fetch metadata, NOT the full analysis blob (keeps response small)
                 {"_id": 1, "report_type": 1, "platform": 1,
                  "category": 1, "generated_at": 1, "products_analyzed": 1}
-            ).sort([("_id", -1)]).limit(50)   # _id is always present & monotonically increasing
+            ).sort([("generated_at", -1)]).limit(50)   # Sort by newest first
         )
 
+        total_reports = len(raw)
         reports = []
-        for i, r in enumerate(raw, 1):
+        for i, r in enumerate(raw):
+            report_num = total_reports - i  # Newest gets highest number, oldest gets 1
             reports.append({
                 "id"               : str(r["_id"]),
-                "report_number"    : i,                           # "Report 1", "Report 2" ...
+                "report_number"    : report_num,                  # e.g., "Report 5" for newest
                 "report_type"      : r.get("report_type", "N/A"),
                 "platform"         : r.get("platform", "all"),
                 "category"         : r.get("category", "all"),
@@ -192,7 +194,7 @@ def list_reports():
                                      else str(r.get("generated_at", "")),
                 # Human-readable label shown in the UI dropdown / sidebar
                 "label"            : (
-                    f"Report {i} — "
+                    f"Report {report_num} — "
                     f"{r.get('report_type','').replace('_',' ').title()} | "
                     f"{r.get('platform','all').upper()} | "
                     f"{r.get('category','all').capitalize()}"
@@ -259,3 +261,81 @@ def chat():
         "reply"    : reply,
         "report_id": report_id,
     })
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ENDPOINT 3 — POST /api/chat/upload-pdf
+# Accepts a multipart/form-data PDF upload, runs RAG ingestion,
+# returns { session_id, filename, page_count, chunk_count }
+# Nothing is persisted to MongoDB or disk — entirely ephemeral.
+# ══════════════════════════════════════════════════════════════════════════════
+@chat_bp.route("/upload-pdf", methods=["POST"])
+def upload_pdf():
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded. Send the PDF as form field 'file'."}), 400
+
+    f = request.files["file"]
+    if not f.filename:
+        return jsonify({"error": "Empty filename."}), 400
+    if not f.filename.lower().endswith(".pdf"):
+        return jsonify({"error": "Only PDF files are supported."}), 400
+
+    pdf_bytes = f.read()
+    if len(pdf_bytes) > 20 * 1024 * 1024:   # 20 MB cap
+        return jsonify({"error": "PDF too large (max 20 MB)."}), 413
+
+    try:
+        from src.utils.rag_pdf_chat import ingest_pdf, get_session_info
+        session_id = ingest_pdf(pdf_bytes, f.filename)
+        info       = get_session_info(session_id)
+        return jsonify({
+            "session_id":  session_id,
+            "filename":    info["filename"],
+            "page_count":  info["page_count"],
+            "chunk_count": info["chunk_count"],
+        })
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 422
+    except Exception as e:
+        logger.error(f"upload_pdf error: {e}", exc_info=True)
+        return jsonify({"error": f"Ingestion failed: {str(e)}"}), 500
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ENDPOINT 4 — POST /api/chat/pdf
+# Body: { "message": str, "session_id": str, "history": [...] }
+# Returns: { "reply": str, "session_id": str }
+# ══════════════════════════════════════════════════════════════════════════════
+@chat_bp.route("/pdf", methods=["POST"])
+def chat_pdf():
+    body = request.get_json() or {}
+
+    user_message = body.get("message", "").strip()
+    session_id   = body.get("session_id", "").strip()
+    history      = body.get("history", [])
+
+    if not user_message:
+        return jsonify({"error": "message is required"}), 400
+    if not session_id:
+        return jsonify({"error": "session_id is required"}), 400
+
+    try:
+        from src.utils.rag_pdf_chat import answer
+        reply = answer(session_id, user_message, history)
+        return jsonify({"reply": reply, "session_id": session_id})
+    except KeyError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        logger.error(f"chat_pdf error: {e}", exc_info=True)
+        return jsonify({"error": f"AI error: {str(e)}"}), 500
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ENDPOINT 5 — DELETE /api/chat/pdf/<session_id>
+# Immediately frees the in-memory session (optional — called on tab clear)
+# ══════════════════════════════════════════════════════════════════════════════
+@chat_bp.route("/pdf/<session_id>", methods=["DELETE"])
+def delete_pdf_session(session_id):
+    from src.utils.rag_pdf_chat import delete_session
+    deleted = delete_session(session_id)
+    return jsonify({"deleted": deleted})

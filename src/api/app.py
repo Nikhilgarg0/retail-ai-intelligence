@@ -406,7 +406,8 @@ def download_report_pdf(report_id):
         pdf_gen = get_pdf_gen()
         pdf_bytes = pdf_gen.generate_analysis_report(
             report["analysis"],
-            f"{platform_text} - {category_text}"
+            f"{platform_text} - {category_text}",
+            products_analyzed=report.get("products_analyzed"),
         )
 
         return send_file(
@@ -430,7 +431,11 @@ def download_analysis_pdf():
 
     try:
         pdf_gen = get_pdf_gen()
-        pdf_bytes = pdf_gen.generate_analysis_report(analysis, label)
+        pdf_bytes = pdf_gen.generate_analysis_report(
+            analysis,
+            label,
+            products_analyzed=body.get("products_analyzed"),
+        )
 
         return send_file(
             io.BytesIO(pdf_bytes),

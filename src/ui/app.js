@@ -7,6 +7,7 @@ const API = '';  // same origin — Flask serves index.html
 let allProducts = [];
 let currentAnalysis = null;
 let currentAnalysisLabel = '';
+let currentProductsAnalyzed = 0;
 
 // ── DOM helpers ───────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -101,7 +102,7 @@ async function loadSidebarStats() {
   try {
     const s = await apiFetch('/api/stats');
     $('stat-products').textContent = fmt(s.total_products);
-    $('stat-platforms').textContent = fmt(4);
+    $('stat-platforms').textContent = fmt(2);
     $('stat-reports').textContent = fmt(s.total_reports);
     $('apiStatusDot').className = 'status-dot online';
     $('apiStatusText').textContent = 'API Connected';
@@ -121,9 +122,9 @@ async function loadDashboard() {
     $('d-total-products').textContent = fmt(stats.total_products);
     $('d-price-drops').textContent = fmt(stats.price_drops);
     $('d-price-increases').textContent = fmt(stats.price_increases);
-    $('d-platforms').textContent = fmt(4);
+    $('d-platforms').textContent = fmt(2);
     $('stat-products').textContent = fmt(stats.total_products);
-    $('stat-platforms').textContent = fmt(4);
+    $('stat-platforms').textContent = fmt(2);
     $('stat-reports').textContent = fmt(stats.total_reports);
     if (!recent.length) {
       $('recentActivity').innerHTML = notice('info', 'No activity yet. Start by collecting data from the Data Collection page.');
@@ -153,7 +154,7 @@ async function loadDashboard() {
 async function startCollection() {
   const query = $('col-query').value.trim();
   const platform = $('col-platform').value;
-  const category = $('col-category').value;
+  const category = 'general'; // Default category since UI dropdown is removed
   const max = parseInt($('col-max').value) || 10;
   const btn = $('btnCollect');
   const result = $('collectionResult');
@@ -207,12 +208,10 @@ async function startCollection() {
 async function runMultiSearch() {
   const query = $('ms-query').value.trim();
   const max = parseInt($('ms-max').value) || 5;
-  const category = $('ms-category').value;
+  const category = 'general';
   const platforms = [];
   if ($('ms-amazon').checked) platforms.push('amazon');
   if ($('ms-flipkart').checked) platforms.push('flipkart');
-  if ($('ms-myntra')?.checked) platforms.push('myntra');
-  if ($('ms-ajio')?.checked) platforms.push('ajio');
   const btn = $('btnMultiSearch');
   const result = $('multiSearchResult');
   if (!query) { toast('Enter a search query', 'warn'); return; }
@@ -385,6 +384,18 @@ function switchAnalyticsTab(btn, targetId) {
 }
 
 // ── Analytics — Price Drops ────────────────────────────────────────────────
+let dropDebounceTimer;
+function updateDropMinLabel() {
+  const val = $('drop-min').value;
+  $('drop-min-label').textContent = val + '%';
+}
+function debouncedLoadPriceDrops() {
+  clearTimeout(dropDebounceTimer);
+  dropDebounceTimer = setTimeout(() => {
+    loadPriceDrops();
+  }, 250);
+}
+
 async function loadPriceDrops() {
   const minDrop = parseFloat($('drop-min').value) || 10;
   const result = $('priceDropsResult');
@@ -425,19 +436,35 @@ async function loadAnalyticsData() {
   loadDistribution();
 }
 
+let increaseDebounceTimer;
+function updateIncreaseMinLabel() {
+  const val = $('increase-min').value;
+  $('increase-min-label').textContent = val + '%';
+}
+function debouncedLoadPriceIncreases() {
+  clearTimeout(increaseDebounceTimer);
+  increaseDebounceTimer = setTimeout(() => {
+    loadPriceIncreases();
+  }, 250);
+}
+
 async function loadPriceIncreases() {
+  const minInc = parseFloat($('increase-min')?.value) || 10;
   const result = $('priceIncreasesResult');
   if (!result) return;
   result.innerHTML = spinner('Loading…');
   try {
     const data = await apiFetch('/api/products/price-analytics');
-    const products = data.price_increases || [];
+    let products = data.price_increases || [];
+    if (minInc > 0) {
+      products = products.filter(p => (p.price_change_percent || 0) >= minInc);
+    }
     if (!products.length) {
-      result.innerHTML = notice('info', 'No price increases detected.');
+      result.innerHTML = notice('info', `No price increases >${minInc}% detected.`);
       return;
     }
     result.innerHTML = `
-      ${notice('warn', `${data.price_increases_count} product${data.price_increases_count !== 1 ? 's' : ''} with price increases`)}
+      ${notice('warn', `${products.length} product${products.length !== 1 ? 's' : ''} with price increases`)}
       <div class="card">
         <div class="tbl-wrap">
           <table>
@@ -518,6 +545,7 @@ async function runAnalysis() {
     if (data.error) throw new Error(data.error);
     currentAnalysis = data.analysis;
     currentAnalysisLabel = `${platform.toUpperCase()} — ${category.toUpperCase()}`;
+    currentProductsAnalyzed = data.products_analyzed || 0;
     result.innerHTML = renderAnalysis(data.analysis, type, data.products_analyzed, platform, category);
     toast('Analysis complete', 'success');
   } catch (e) {
@@ -595,6 +623,10 @@ function renderAnalysis(analysis, type, productsAnalyzed, platform, category) {
     </div>` : ''}
     <hr class="divider" />
     <p class="dimmed" style="font-size:12px">Deep analysis reports are automatically saved to the database.</p>
+    <button class="btn btn-secondary" style="margin-top:8px" onclick="downloadAnalysisPDF()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Download PDF Report
+    </button>
   </div>`;
 }
 
@@ -604,7 +636,11 @@ async function downloadAnalysisPDF() {
     const res = await fetch(API + '/api/analysis/pdf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ analysis: currentAnalysis, label: currentAnalysisLabel }),
+      body: JSON.stringify({
+        analysis: currentAnalysis,
+        label: currentAnalysisLabel,
+        products_analyzed: currentProductsAnalyzed,
+      }),
     });
     if (!res.ok) throw new Error('PDF generation failed');
     const blob = await res.blob();
@@ -721,6 +757,128 @@ let chatSelectedLabel = '';
 let chatHistory       = [];
 let chatIsLoading     = false;
 
+// ── PDF RAG State (ephemeral, not persisted) ────────────────────────────────
+let pdfSessionId      = null;    // UUID from /api/chat/upload-pdf
+let pdfFilename       = '';
+let pdfPageCount      = 0;
+let pdfChunkCount     = 0;
+let pdfMode           = false;   // true when chatting with an uploaded PDF
+
+// ── Trigger file input ──────────────────────────────────────────────────────
+function triggerPdfUpload() {
+  $('pdfFileInput').value = '';   // reset so same file can be re-uploaded
+  $('pdfFileInput').click();
+}
+
+// ── Handle file selection & upload ─────────────────────────────────────────
+async function handlePdfUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // Show uploading state in sidebar
+  const list = $('chatReportList');
+  const originalHTML = list.innerHTML;
+  list.innerHTML = `
+    <div class="chat-pdf-upload-item uploading">
+      <div class="chat-report-item-num" id="pdfUploadStateText">Uploading…</div>
+      <div class="chat-report-item-name" style="font-size:11px;color:var(--text-3)">${escapeHtml(file.name)}</div>
+      <div class="upload-progress-bar"><div class="upload-progress-fill"></div></div>
+    </div>`;
+
+  // Fake transition to "Analyzing..." after 800ms
+  const analyzeTimer = setTimeout(() => {
+    const el = document.getElementById('pdfUploadStateText');
+    if (el) el.textContent = 'Analyzing…';
+  }, 800);
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const res = await fetch(API + '/api/chat/upload-pdf', {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+
+    // Success — store session
+    if (pdfSessionId) {
+      fetch(API + `/api/chat/pdf/${pdfSessionId}`, { method: 'DELETE' }).catch(() => {});
+    }
+    pdfSessionId  = data.session_id;
+    pdfFilename   = data.filename;
+    pdfPageCount  = data.page_count;
+    pdfChunkCount = data.chunk_count;
+    pdfMode       = true;
+
+    // Deselect any report
+    chatSelectedId    = null;
+    chatSelectedLabel = '';
+    document.querySelectorAll('.chat-report-item').forEach(i => i.classList.remove('selected'));
+
+    // The newly generated PDF item HTML
+    const newPdfHtml = `
+      <div class="chat-report-item selected chat-pdf-item" data-session="${data.session_id}" onclick="selectPdfSession(this)">
+        <div class="chat-report-item-num" style="display:flex;align-items:center;gap:6px">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Uploaded PDF
+          <span class="pdf-temp-badge">Temporary</span>
+        </div>
+        <div class="chat-report-item-name">${escapeHtml(data.filename)}</div>
+        <div class="chat-report-item-meta">${data.page_count} pages · ${data.chunk_count} chunks · session only</div>
+      </div>`;
+
+    // Remove any previous PDF item from the original HTML to prevent duplicates
+    let cleanedHTML = originalHTML;
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = originalHTML;
+    const oldPdf = tempDiv.querySelector('.chat-pdf-item');
+    if (oldPdf) oldPdf.remove();
+    cleanedHTML = tempDiv.innerHTML;
+
+    list.innerHTML = newPdfHtml + cleanedHTML;
+
+    // Activate chat window
+    activateChatWindow(
+      `PDF: ${data.filename}`,
+      `PDF uploaded successfully! I've read **${data.page_count} pages** and split them into **${data.chunk_count} chunks** for search.\n\nAsk me anything about **${data.filename}**.\n\n*Note: This chat is temporary and won't be saved.*`
+    );
+    toast('PDF ready — start chatting!', 'success');
+
+  } catch (e) {
+    list.innerHTML = originalHTML;
+    toast('Upload failed: ' + e.message, 'error');
+  } finally {
+    clearTimeout(analyzeTimer);
+  }
+}
+
+// ── Select an already-uploaded PDF session ──────────────────────────────────
+function selectPdfSession(el) {
+  document.querySelectorAll('.chat-report-item').forEach(i => i.classList.remove('selected'));
+  el.classList.add('selected');
+  pdfMode = true;
+  activateChatWindow(
+    `PDF: ${pdfFilename}`,
+    `Continuing session for **${pdfFilename}**. Ask me anything!`
+  );
+}
+
+// ── Shared function to open the chat window ────────────────────────────────
+function activateChatWindow(label, welcomeMsg) {
+  chatHistory = [];
+  $('chatMessages').innerHTML = '';
+  $('chatActiveBanner').classList.remove('hidden');
+  $('chatActiveName').textContent = label;
+  $('chatNoReport').classList.add('hidden');
+  $('chatMessages').classList.remove('hidden');
+  $('chatInputBar').classList.remove('hidden');
+  $('chatTyping').classList.add('hidden');
+  appendMessage('assistant', welcomeMsg);
+  $('chatInput').focus();
+}
+
 // ── Load report list ───────────────────────────────────────────────────────
 async function loadChatReports() {
   const list = $('chatReportList');
@@ -728,13 +886,31 @@ async function loadChatReports() {
   try {
     const data = await apiFetch('/api/chat/reports');
     chatReports = data.reports || [];
-    if (!chatReports.length) {
+    
+    let html = '';
+    
+    // Always preserve the PDF session if it exists
+    if (pdfSessionId) {
+      html += `
+        <div class="chat-report-item ${pdfMode ? 'selected' : ''} chat-pdf-item" data-session="${pdfSessionId}" onclick="selectPdfSession(this)">
+          <div class="chat-report-item-num" style="display:flex;align-items:center;gap:6px">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Uploaded PDF
+            <span class="pdf-temp-badge">Temporary</span>
+          </div>
+          <div class="chat-report-item-name">${escapeHtml(pdfFilename)}</div>
+          <div class="chat-report-item-meta">${pdfPageCount} pages · ${pdfChunkCount} chunks · session only</div>
+        </div>`;
+    }
+
+    if (!chatReports.length && !pdfSessionId) {
       list.innerHTML = '<div class="chat-empty-state"><p>No reports found.<br>Generate one from AI Insights.</p></div>';
       return;
     }
-    list.innerHTML = chatReports.map(r => `
+    
+    html += chatReports.map(r => `
       <div
-        class="chat-report-item ${r.id === chatSelectedId ? 'selected' : ''}"
+        class="chat-report-item ${r.id === chatSelectedId && !pdfMode ? 'selected' : ''}"
         data-id="${r.id}"
         data-label="${escapeHtml(r.label)}"
         onclick="selectChatReport('${r.id}', this)"
@@ -749,6 +925,8 @@ async function loadChatReports() {
         </div>
       </div>
     `).join('');
+    
+    list.innerHTML = html;
   } catch (e) {
     list.innerHTML = `<div class="chat-empty-state"><p>Error: ${e.message}</p></div>`;
     toast('Could not load reports', 'error');
@@ -757,21 +935,16 @@ async function loadChatReports() {
 
 // ── Select a report ────────────────────────────────────────────────────────
 function selectChatReport(id, el) {
-  if (id === chatSelectedId) return;
+  if (id === chatSelectedId && !pdfMode) return;
   document.querySelectorAll('.chat-report-item').forEach(i => i.classList.remove('selected'));
   el.classList.add('selected');
   chatSelectedId    = id;
   chatSelectedLabel = el.dataset.label;
-  chatHistory = [];
-  $('chatMessages').innerHTML = '';
-  $('chatActiveBanner').classList.remove('hidden');
-  $('chatActiveName').textContent = chatSelectedLabel;
-  $('chatNoReport').classList.add('hidden');
-  $('chatMessages').classList.remove('hidden');
-  $('chatInputBar').classList.remove('hidden');
-  $('chatTyping').classList.add('hidden');
-  appendMessage('assistant', `Report loaded! Ask me anything about it.\n\nTry: *"Is this report ke recommendations kya hain?"* or *"Summarize this report for me."*`);
-  $('chatInput').focus();
+  pdfMode           = false;  // switch away from PDF mode
+  activateChatWindow(
+    chatSelectedLabel,
+    `Report loaded! Ask me anything about it.\n\nTry: *"Is this report ke recommendations kya hain?"* or *"Summarize this report for me."*`
+  );
 }
 
 // ── Send a message ─────────────────────────────────────────────────────────
@@ -780,7 +953,8 @@ async function sendChatMessage() {
   const input = $('chatInput');
   const text  = input.value.trim();
   if (!text) return;
-  if (!chatSelectedId) { toast('Please select a report first', 'warning'); return; }
+  if (!pdfMode && !chatSelectedId) { toast('Please select a report first', 'warning'); return; }
+  if (pdfMode && !pdfSessionId)   { toast('PDF session expired — please re-upload.', 'warning'); return; }
   appendMessage('user', text);
   chatHistory.push({ role: 'user', content: text });
   input.value = '';
@@ -790,14 +964,26 @@ async function sendChatMessage() {
   $('chatSendBtn').disabled   = true;
   $('chatMessages').scrollTop = $('chatMessages').scrollHeight;
   try {
-    const data = await apiFetch('/api/chat', {
-      method: 'POST',
-      body: JSON.stringify({
-        message  : text,
-        report_id: chatSelectedId,
-        history  : chatHistory.slice(-20),
-      }),
-    });
+    let data;
+    if (pdfMode) {
+      data = await apiFetch('/api/chat/pdf', {
+        method: 'POST',
+        body: JSON.stringify({
+          message:    text,
+          session_id: pdfSessionId,
+          history:    chatHistory.slice(-20),
+        }),
+      });
+    } else {
+      data = await apiFetch('/api/chat', {
+        method: 'POST',
+        body: JSON.stringify({
+          message  : text,
+          report_id: chatSelectedId,
+          history  : chatHistory.slice(-20),
+        }),
+      });
+    }
     const reply = data.reply || 'No response received.';
     appendMessage('assistant', reply);
     chatHistory.push({ role: 'assistant', content: reply });
