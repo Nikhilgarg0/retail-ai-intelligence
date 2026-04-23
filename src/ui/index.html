@@ -324,33 +324,25 @@
               <label class="form-label" for="ms-max">Results per Platform</label>
               <input type="number" id="ms-max" class="form-input" value="5" min="1" max="10" />
             </div>
-            <div class="form-group">
-              <label class="form-label" for="ms-category">Category</label>
-              <select id="ms-category" class="form-select">
-                <option value="electronics">Electronics</option>
-                <option value="clothing">Clothing</option>
-                <option value="cosmetics">Cosmetics</option>
-                <option value="groceries">Groceries</option>
-                <option value="home & kitchen">Home &amp; Kitchen</option>
-              </select>
-            </div>
-          </div>
-          <div class="checkbox-row">
-            <label class="check-label"><input type="checkbox" id="ms-amazon" checked /> Amazon</label>
-            <label class="check-label"><input type="checkbox" id="ms-flipkart" checked /> Flipkart</label>
 
           </div>
-          <div class="mt-4">
-            <button class="btn btn-primary" id="btnMultiSearch" onclick="runMultiSearch()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              Search All Platforms
-            </button>
-          </div>
         </div>
-        <div id="multiSearchResult" class="mt-4"></div>
+        <div class="checkbox-row">
+          <label class="check-label"><input type="checkbox" id="ms-amazon" checked /> Amazon</label>
+          <label class="check-label"><input type="checkbox" id="ms-flipkart" checked /> Flipkart</label>
+
+        </div>
+        <div class="mt-4">
+          <button class="btn btn-primary" id="btnMultiSearch" onclick="runMultiSearch()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            Search All Platforms
+          </button>
+        </div>
+      </div>
+      <div id="multiSearchResult" class="mt-4"></div>
       </div>
       <!-- Browse Database -->
       <div class="tab-content" id="tab-browse">
@@ -416,8 +408,10 @@
             <div class="card-title">Products with Price Reductions</div>
             <div class="inline-ctl" style="display:flex;align-items:center;gap:12px">
               <label class="form-label" for="drop-min" style="margin-bottom:0">Min Drop:</label>
-              <input type="range" id="drop-min" value="10" min="0" max="50" step="1" class="custom-slider" oninput="updateDropMinLabel(); debouncedLoadPriceDrops();" />
-              <span id="drop-min-label" style="font-size:0.85rem;font-weight:600;min-width:36px;color:var(--text-1)">10%</span>
+              <input type="range" id="drop-min" value="10" min="0" max="50" step="1" class="custom-slider"
+                oninput="updateDropMinLabel(); debouncedLoadPriceDrops();" />
+              <span id="drop-min-label"
+                style="font-size:0.85rem;font-weight:600;min-width:36px;color:var(--text-1)">10%</span>
             </div>
           </div>
         </div>
@@ -429,8 +423,10 @@
             <div class="card-title">Products with Price Increases</div>
             <div class="inline-ctl" style="display:flex;align-items:center;gap:12px">
               <label class="form-label" for="increase-min" style="margin-bottom:0">Min Increase:</label>
-              <input type="range" id="increase-min" value="10" min="0" max="50" step="1" class="custom-slider" oninput="updateIncreaseMinLabel(); debouncedLoadPriceIncreases();" />
-              <span id="increase-min-label" style="font-size:0.85rem;font-weight:600;min-width:36px;color:var(--text-1)">10%</span>
+              <input type="range" id="increase-min" value="10" min="0" max="50" step="1" class="custom-slider"
+                oninput="updateIncreaseMinLabel(); debouncedLoadPriceIncreases();" />
+              <span id="increase-min-label"
+                style="font-size:0.85rem;font-weight:600;min-width:36px;color:var(--text-1)">10%</span>
             </div>
           </div>
         </div>
