@@ -26,9 +26,7 @@ const trendBadge = t => {
 };
 const platformBadge = p => {
   const cl = p === 'AMAZON'   ? 'b-amber'  :
-             p === 'FLIPKART' ? 'b-blue'   :
-             p === 'MYNTRA'   ? 'b-rose'   :
-             p === 'AJIO'     ? 'b-green'  : 'b-muted';
+             p === 'FLIPKART' ? 'b-blue'   : 'b-muted';
   return `<span class="badge ${cl}">${p}</span>`;
 };
 
